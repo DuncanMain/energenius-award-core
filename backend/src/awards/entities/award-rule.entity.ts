@@ -20,3 +20,4 @@ export class AwardRule {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
+

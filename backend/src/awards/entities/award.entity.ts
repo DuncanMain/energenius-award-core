@@ -8,16 +8,16 @@ import {
 } from 'typeorm';
 import { Transaction } from './transaction.entity';
 
-@Entity('wallets')
-export class Wallet {
+@Entity('awards')
+export class Award {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ unique: true })
   uid: string;
 
-  @Column({ name: 'wallet_id', unique: true })
-  walletId: string;
+  @Column({ name: 'award_id', unique: true })
+  awardId: string;
 
   @Column()
   address: string;
@@ -31,6 +31,7 @@ export class Wallet {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @OneToMany(() => Transaction, (transaction) => transaction.wallet)
+  @OneToMany(() => Transaction, (transaction) => transaction.award)
   transactions: Transaction[];
 }
+

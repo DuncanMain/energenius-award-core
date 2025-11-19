@@ -23,8 +23,8 @@ async function bootstrap() {
 
   // Swagger setup
   const config = new DocumentBuilder()
-    .setTitle('ENERGENIUS Wallet API')
-    .setDescription('ENERGENIUS Sandbox Wallet Backend API Documentation')
+    .setTitle('ENERGENIUS Awards API')
+    .setDescription('ENERGENIUS Sandbox Awards Backend API Documentation')
     .setVersion('1.0')
     .addBearerAuth(
       {

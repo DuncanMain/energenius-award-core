@@ -6,7 +6,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Wallet } from './wallet.entity';
+import { Award } from './award.entity';
 
 @Entity('transactions')
 export class Transaction {
@@ -16,8 +16,8 @@ export class Transaction {
   @Column({ name: 'tx_id', unique: true })
   txId: string;
 
-  @Column({ name: 'wallet_id' })
-  walletId: string;
+  @Column({ name: 'award_id' })
+  awardId: string;
 
   @Column({ type: 'varchar', length: 20 })
   type: 'credit' | 'debit';
@@ -34,7 +34,8 @@ export class Transaction {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @ManyToOne(() => Wallet, (wallet) => wallet.transactions)
-  @JoinColumn({ name: 'wallet_id' })
-  wallet: Wallet;
+  @ManyToOne(() => Award, (award) => award.transactions)
+  @JoinColumn({ name: 'award_id' })
+  award: Award;
 }
+
