@@ -26,17 +26,6 @@ async function bootstrap() {
     .setTitle('ENERGENIUS Awards API')
     .setDescription('ENERGENIUS Sandbox Awards Backend API Documentation')
     .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'Authorization',
-        description: 'Enter API Key',
-        in: 'header',
-      },
-      'api-key',
-    )
     .build();
   
   const document = SwaggerModule.createDocument(app, config);
