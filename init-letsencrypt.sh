@@ -5,7 +5,7 @@ if ! [ -x "$(command -v docker compose)" ]; then
   exit 1
 fi
 
-domains=(energenius-wallet.zentrix.io)
+domains=(energenius-award-system.zentrix.io)
 rsa_key_size=4096
 data_path="./certbot"
 email="dejan.mancic@gmail.com" # Replace with your email
