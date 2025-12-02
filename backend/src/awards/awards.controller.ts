@@ -30,10 +30,8 @@ export class AwardsController {
       properties: {
         uid: { type: "string", example: "user123" },
         eventId: { type: "string", example: "first_login" },
-        Labels: { type: "string", example: "[]" },
-        sessionId: { type: "string", example: "from nexus" },
         timestamp: { type: "string", example: "2025-11-10T18:47:00+01:00" },
-        source: { type: "string", example: "ENPlay" },
+        source: { type: "string", example: "nexus" },
       },
       required: ["uid", "eventId"],
     },
@@ -45,13 +43,11 @@ export class AwardsController {
     body: {
       uid: string;
       eventId: string;
-      Labels?: string;
-      sessionId?: string;
       timestamp?: string;
       source?: string;
     }
   ) {
-    return this.awardsService.awardEvent(body.uid, body.eventId);
+    return this.awardsService.awardEvent(body.uid, body.eventId, body.source);
   }
 
   @Post("spend")
@@ -91,12 +87,14 @@ export class AwardsController {
   }
 
   @Get("awards/:uid")
-  @ApiOperation({ summary: "Get awards snapshot" })
+  @ApiOperation({ summary: "Get available rewards for user" })
   @ApiParam({ name: "uid", description: "User ID", example: "user123" })
-  @ApiResponse({ status: 200, description: "Awards retrieved successfully" })
-  @ApiResponse({ status: 409, description: "UID does not exist" })
-  async getUserAwards(@Param("uid") uid: string) {
-    return this.awardsService.getUserAwards(uid);
+  @ApiResponse({
+    status: 200,
+    description: "Available rewards retrieved successfully",
+  })
+  async getAvailableRewards(@Param("uid") uid: string) {
+    return this.awardsService.getAvailableRewards(uid);
   }
 }
 
