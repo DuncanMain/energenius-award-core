@@ -85,6 +85,7 @@ Example:
   "encAmount": "10",
   "maxCount": 1
 }
+```
 
 - encAmount is expressed in whole tokens
 - Converted internally using 18 decimals
