@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: award
+      POSTGRES_PASSWORD: awardpass
+      POSTGRES_DB: awarddb
+    ports:
+      - "5432:5432"
+    volumes:
+      - awarddb_data:/var/lib/postgresql/data
+
+volumes:
+  awarddb_data:
