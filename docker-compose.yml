@@ -3,10 +3,32 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    restart: unless-stopped
+    image: energenius-wallet-backend
+    depends_on:
+      - db
     environment:
       NODE_ENV: production
       PORT: 3001
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: energenius
+      API_KEY: zentrix-lab-energenius-wallet
+    # No direct port exposure - nginx will proxy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: energenius-wallet-frontend
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: https://energenius-wallet.zentrix.io/v1
+      NEXT_PUBLIC_API_KEY: zentrix-lab-energenius-wallet
     # No direct port exposure - nginx will proxy
 
   nginx:
