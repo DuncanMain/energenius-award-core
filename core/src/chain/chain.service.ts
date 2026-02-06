@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Contract, JsonRpcProvider, Wallet } from 'ethers';
-import * as encoinAbi from './encoin.abi.json';
+import * as encoinAbi from './abi/encoin.abi.json';
 
 @Injectable()
 export class ChainService implements OnModuleInit {
@@ -11,6 +11,14 @@ export class ChainService implements OnModuleInit {
   private chainId: number;
 
   constructor(private configService: ConfigService) {}
+  
+  private mustEnv(name: string): string {
+    const value = this.configService.get<string>(name);
+    if (!value || value.trim() === '') {
+      throw new Error(`${name} is not set`);
+    }
+    return value.trim();
+  }
 
   onModuleInit() {
     const rpcUrl = this.mustEnv('AMOY_RPC_URL');
@@ -21,14 +29,6 @@ export class ChainService implements OnModuleInit {
     this.provider = new JsonRpcProvider(rpcUrl, this.chainId);
     this.signer = new Wallet(privateKey, this.provider);
     this.encoin = new Contract(contractAddress, encoinAbi, this.signer);
-  }
-
-  private mustEnv(name: string): string {
-    const value = this.configService.get<string>(name);
-    if (!value || value.trim() === '') {
-      throw new Error(`${name} is not set`);
-    }
-    return value.trim();
   }
 
   /**
