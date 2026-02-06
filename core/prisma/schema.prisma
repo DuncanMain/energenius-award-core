@@ -9,6 +9,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum AwardRuleId {
+  FIRST_LOGIN @map("first_login")
+  TEST_EVENT  @map("test_event")
+}
+
 model UserWallet {
   id        Int      @id @default(autoincrement())
   uid       String   @unique
@@ -19,11 +24,19 @@ model UserWallet {
   @@map("user_wallets")
 }
 
+model AwardRule {
+  id        AwardRuleId @id
+  title     String
+  encAmount String   // čuvamo kao string jer su “whole tokens as string”
+  maxCount  Int      // 0 = unlimited
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
 model UserAward {
   id        Int      @id @default(autoincrement())
   uid       String
-  eventId   String   @map("event_id")
+  eventId   AwardRuleId   @map("event_id")
   count     Int      @default(0)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -38,9 +51,9 @@ model TxLog {
   uid            String
   address        String
   type           String 
-  eventId        String?   @map("event_id")
+  eventId        AwardRuleId?   @map("event_id")
   label          String?
-  amount         String 
+  amount         BigInt 
   txHash         String    @map("tx_hash")
   chainId        Int       @map("chain_id")
   eventTimestamp DateTime? @map("event_timestamp")

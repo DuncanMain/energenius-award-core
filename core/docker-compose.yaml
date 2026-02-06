@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    container_name: nestjs-app
+    container_name: nestjs-app-award
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -20,7 +20,7 @@ services:
       - db
 
   db:
-    container_name: dev-db
+    container_name: dev-db-award
     image: postgres:17
     restart: unless-stopped
     ports:

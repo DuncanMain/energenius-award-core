@@ -1,6 +1,6 @@
 import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { AwardRuleId, Prisma } from '@prisma/client';
 
 @Injectable()
 export class AwardRepository {
@@ -9,7 +9,7 @@ export class AwardRepository {
   /**
    * Pronađi award count za korisnika i eventId
    */
-  async findByUidAndEventId(uid: string, eventId: string) {
+  async findByUidAndEventId(uid: string, eventId: AwardRuleId) {
     return this.prisma.userAward.findUnique({
       where: {
         uid_eventId: { uid, eventId },
@@ -29,7 +29,7 @@ export class AwardRepository {
   /**
    * Kreiraj ili ignoriši (upsert sa default count = 0)
    */
-  async upsert(uid: string, eventId: string) {
+  async upsert(uid: string, eventId: AwardRuleId) {
     return this.prisma.userAward.upsert({
       where: { uid_eventId: { uid, eventId } },
       update: {},
@@ -40,7 +40,7 @@ export class AwardRepository {
   /**
    * Uvećaj count za 1 (increment)
    */
-  async incrementCount(uid: string, eventId: string) {
+  async incrementCount(uid: string, eventId: AwardRuleId) {
     return this.prisma.userAward.update({
       where: { uid_eventId: { uid, eventId } },
       data: { count: { increment: 1 } },
@@ -53,7 +53,7 @@ export class AwardRepository {
    */
   async findByUidAndEventIdWithLock(
     uid: string,
-    eventId: string,
+    eventId: AwardRuleId,
     tx: Prisma.TransactionClient
   ) {
     return tx.userAward.findUnique({
@@ -66,7 +66,7 @@ export class AwardRepository {
    */
   async upsertInTransaction(
     uid: string,
-    eventId: string,
+    eventId: AwardRuleId,
     tx: Prisma.TransactionClient
   ) {
     return tx.userAward.upsert({
@@ -81,7 +81,7 @@ export class AwardRepository {
    */
   async incrementCountInTransaction(
     uid: string,
-    eventId: string,
+    eventId: AwardRuleId,
     tx: Prisma.TransactionClient
   ) {
     return tx.userAward.update({

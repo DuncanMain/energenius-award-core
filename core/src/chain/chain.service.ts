@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Contract, JsonRpcProvider, Wallet } from 'ethers';
-import * as encoinAbi from './abi/encoin.abi.json';
+import encoinAbi from './abi/encoin.abi.json';
 
 @Injectable()
 export class ChainService implements OnModuleInit {
@@ -51,7 +51,7 @@ export class ChainService implements OnModuleInit {
   /**
    * Oduzima tokene od korisnika (spend)
    */
-  async spend(from: string, amountWei: bigint): Promise<string> {
+  async spend(from: string, amountWei: number): Promise<string> {
     const tx = await this.encoin.spend(from, amountWei);
     await tx.wait(); // Čeka blockchain confirmation
     return tx.hash as string;

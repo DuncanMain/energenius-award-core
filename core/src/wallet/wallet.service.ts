@@ -8,7 +8,7 @@ export interface WalletHistoryItem {
   type: string;
   eventId: string | null;
   label: string | null;
-  amountWei: string;
+  amountWei: bigint;
   txHash: string;
   createdAt: string;
 }
