@@ -3,7 +3,6 @@ import { AwardService} from './award.service';
 import { EventDto } from './dto/event.dto';
 import { AwardCoreError } from '@/utils/errors/award-core.error';
 import { AwardRule, AwardTableService } from './award-table.service';
-import { UidDto } from './dto/uid.dto';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 
 @Controller('award')
@@ -47,7 +46,7 @@ export class AwardController {
   @ApiOperation({ summary: 'Get available awards for a specific user' })
   @ApiParam({ name: 'uid', description: 'UID korisnika' })
   @ApiResponse({ status: 200, description: 'List of available awards for the user' })
-  async getAvailable(@Param('uid') dto: UidDto) {
-    return await this.awardService.getAvailableAwardsForUser(dto.uid);
+  async getAvailable(@Param('uid') uid: string) {
+    return await this.awardService.getAvailableAwardsForUser(uid);
   }
 }

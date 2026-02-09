@@ -10,8 +10,8 @@ datasource db {
 }
 
 enum AwardRuleId {
-  FIRST_LOGIN @map("first_login")
-  TEST_EVENT  @map("test_event")
+  FIRST_LOGIN
+  TEST_EVENT
 }
 
 model UserWallet {
@@ -53,7 +53,7 @@ model TxLog {
   type           String 
   eventId        AwardRuleId?   @map("event_id")
   label          String?
-  amount         BigInt 
+  amount         Decimal 
   txHash         String    @map("tx_hash")
   chainId        Int       @map("chain_id")
   eventTimestamp DateTime? @map("event_timestamp")

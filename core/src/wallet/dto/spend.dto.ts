@@ -7,7 +7,7 @@ export class AwardDto {
 
   @IsInt()
   @Min(1, { message: 'Amount must be greater than 0' })
-  amount: number;
+  amount: bigint;
 
   @IsOptional()
   @IsString()

@@ -20,7 +20,7 @@ export class AwardService {
     private userWalletRepo: UserWalletRepository,
     private userAwardRepo: AwardRepository,
     private txLogRepo: TxLogRepository,
-    private configService : ConfigService
+    private configService: ConfigService
   ) {}
 
   /**
@@ -50,10 +50,11 @@ export class AwardService {
     const address = deriveAddress(uid);
     const amountWei = BigInt(parseUnits(rule.encAmount, 18).toString());
     // const chainId = this.chainService.getChainId();
-
+    // 5. BLOCKCHAIN TRANSAKCIJA
+    const txHash = await this.chainService.award(address, amountWei);
     // 3. DATABASE TRANSACTION SA BUSINESS LOGIKOM
     return await this.prisma.$transaction(async tx => {
-      // Osiguraj da wallet postoji
+      // Osiguraj da wallet postoji, prvo kreiramo wallet
       await tx.userWallet.upsert({
         where: { uid },
         update: {},
@@ -82,8 +83,6 @@ export class AwardService {
         );
       }
       const chainId = Number(this.configService.get<string>('CHAIN_ID'));
-      // 5. BLOCKCHAIN TRANSAKCIJA
-      const txHash = await this.chainService.award(address, amountWei);
 
       // 6. UPDATE BAZE
       await this.userAwardRepo.incrementCountInTransaction(uid, eventId, tx);
@@ -95,7 +94,7 @@ export class AwardService {
           type: 'award',
           eventId,
           label: rule.title,
-          amount: Number(amountWei),
+          amount: rule.encAmount,
           txHash,
           chainId: chainId,
           eventTimestamp,
@@ -124,8 +123,7 @@ export class AwardService {
    * 3. Blockchain spend transakcija
    * 4. Update baze podataka
    */
-  async spend(uid: AwardRuleId, amountEnc: number, label?: string) {
-
+  async spend(uid: AwardRuleId, amountEnc: bigint, label?: string) {
     const address = deriveAddress(uid);
     const chainId = this.chainService.getChainId();
 
@@ -151,7 +149,7 @@ export class AwardService {
           type: 'spend',
           eventId: null,
           label: label ?? null,
-          amount: amountEnc,
+          amount: amountEnc.toString(),
           txHash,
           chainId,
         },

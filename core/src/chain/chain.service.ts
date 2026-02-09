@@ -51,7 +51,7 @@ export class ChainService implements OnModuleInit {
   /**
    * Oduzima tokene od korisnika (spend)
    */
-  async spend(from: string, amountWei: number): Promise<string> {
+  async spend(from: string, amountWei: bigint): Promise<string> {
     const tx = await this.encoin.spend(from, amountWei);
     await tx.wait(); // Čeka blockchain confirmation
     return tx.hash as string;
