@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "tx_log" ALTER COLUMN "amount" SET DATA TYPE DECIMAL(65,30);
