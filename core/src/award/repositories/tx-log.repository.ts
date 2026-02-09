@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { AwardRuleId, Prisma } from '@prisma/client';
 
 export interface CreateTxLogDto {
   uid: string;
   address: string;
-  type: 'award' | 'spend';
-  eventId?: string | null;
+  type: 'award' | 'spend'; //Ovo cu da promenim mozda u Enum?? Manje bagova u app
+  eventId?: AwardRuleId | null;
   label?: string | null;
   amount: string;
   txHash: string;
@@ -30,7 +30,7 @@ export class TxLogRepository {
         type: data.type,
         eventId: data.eventId ?? null,
         label: data.label ?? null,
-        amount: data.amount,
+        amount: data.amount.toString(),
         txHash: data.txHash,
         chainId: data.chainId,
         eventTimestamp: data.eventTimestamp ?? null,
@@ -83,7 +83,7 @@ export class TxLogRepository {
         type: data.type,
         eventId: data.eventId ?? null,
         label: data.label ?? null,
-        amount: data.amount,
+        amount: data.amount.toString(),
         txHash: data.txHash,
         chainId: data.chainId,
         eventTimestamp: data.eventTimestamp ?? null,

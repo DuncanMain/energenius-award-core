@@ -8,6 +8,8 @@ import { deriveAddress } from '@/utils/wallet';
 import { AwardCoreError } from '@/utils/errors/award-core.error';
 import { AwardRepository } from './award.repository';
 import { AwardTableService } from './award-table.service';
+import { ConfigService } from '@nestjs/config';
+import { AwardRuleId } from '@prisma/client';
 
 @Injectable()
 export class AwardService {
@@ -17,7 +19,8 @@ export class AwardService {
     private awardTableService: AwardTableService,
     private userWalletRepo: UserWalletRepository,
     private userAwardRepo: AwardRepository,
-    private txLogRepo: TxLogRepository
+    private txLogRepo: TxLogRepository,
+    private configService: ConfigService
   ) {}
 
   /**
@@ -32,40 +35,26 @@ export class AwardService {
    */
   async awardEvent(
     uid: string,
-    eventId: string,
+    eventId: AwardRuleId,
     opts?: { timestamp?: string; source?: string }
   ) {
     // 1. VALIDACIJA
     let eventTimestamp: Date | null = null;
 
-    if (opts?.timestamp) {
-      const d = new Date(opts.timestamp);
-      if (isNaN(d.getTime())) {
-        throw new AwardCoreError('VALIDATION_ERROR', 'Invalid timestamp');
-      }
-      eventTimestamp = d;
-    }
-
-    if (!uid || uid.trim() === '') {
-      throw new AwardCoreError('VALIDATION_ERROR', 'uid is required');
-    }
-    if (!eventId || eventId.trim() === '') {
-      throw new AwardCoreError('VALIDATION_ERROR', 'eventId is required');
-    }
-
     // 2. PROVJERA DA LI NAGRADA POSTOJI
-    const rule = this.awardTableService.getAwardRuleById(eventId);
+    const rule = await this.awardTableService.getAwardRuleById(eventId);
     if (!rule) {
       throw new AwardCoreError('UNKNOWN_ACTION', `Unknown eventId: ${eventId}`);
     }
 
     const address = deriveAddress(uid);
     const amountWei = BigInt(parseUnits(rule.encAmount, 18).toString());
-    const chainId = this.chainService.getChainId();
-
+    // const chainId = this.chainService.getChainId();
+    // 5. BLOCKCHAIN TRANSAKCIJA
+    const txHash = await this.chainService.award(address, amountWei);
     // 3. DATABASE TRANSACTION SA BUSINESS LOGIKOM
     return await this.prisma.$transaction(async tx => {
-      // Osiguraj da wallet postoji
+      // Osiguraj da wallet postoji, prvo kreiramo wallet
       await tx.userWallet.upsert({
         where: { uid },
         update: {},
@@ -93,9 +82,7 @@ export class AwardService {
           'maxCount reached for this award'
         );
       }
-
-      // 5. BLOCKCHAIN TRANSAKCIJA
-      const txHash = await this.chainService.award(address, amountWei);
+      const chainId = Number(this.configService.get<string>('CHAIN_ID'));
 
       // 6. UPDATE BAZE
       await this.userAwardRepo.incrementCountInTransaction(uid, eventId, tx);
@@ -107,9 +94,9 @@ export class AwardService {
           type: 'award',
           eventId,
           label: rule.title,
-          amount: amountWei.toString(),
+          amount: rule.encAmount,
           txHash,
-          chainId: 80002,
+          chainId: chainId,
           eventTimestamp,
           source: opts?.source ?? null,
         },
@@ -136,20 +123,7 @@ export class AwardService {
    * 3. Blockchain spend transakcija
    * 4. Update baze podataka
    */
-  async spend(uid: string, amountEnc: string, label?: string) {
-    // 1. VALIDACIJA
-    if (!uid || uid.trim() === '') {
-      throw new AwardCoreError('VALIDATION_ERROR', 'uid is required');
-    }
-    if (!amountEnc || amountEnc.trim() === '') {
-      throw new AwardCoreError('VALIDATION_ERROR', 'amount is required');
-    }
-
-    const amountWei = BigInt(parseUnits(amountEnc, 18).toString());
-    if (amountWei <= 0n) {
-      throw new AwardCoreError('VALIDATION_ERROR', 'amount must be > 0');
-    }
-
+  async spend(uid: AwardRuleId, amountEnc: bigint, label?: string) {
     const address = deriveAddress(uid);
     const chainId = this.chainService.getChainId();
 
@@ -158,14 +132,14 @@ export class AwardService {
 
     // 2. KRITIČNO: Provjeri balans PRIJE blockchain-a
     const bal = await this.chainService.balanceOf(address);
-    if (bal < amountWei) {
+    if (bal < amountEnc) {
       throw new AwardCoreError('INSUFFICIENT_BALANCE', 'insufficient balance');
     }
 
     // 3. DATABASE TRANSACTION
     return await this.prisma.$transaction(async tx => {
       // Blockchain spend transakcija
-      const txHash = await this.chainService.spend(address, amountWei);
+      const txHash = await this.chainService.spend(address, amountEnc);
 
       // Snimi tx_log
       await this.txLogRepo.createInTransaction(
@@ -175,7 +149,7 @@ export class AwardService {
           type: 'spend',
           eventId: null,
           label: label ?? null,
-          amount: amountWei.toString(),
+          amount: amountEnc.toString(),
           txHash,
           chainId,
         },
@@ -201,10 +175,6 @@ export class AwardService {
    * 3. Izračunaj remaining i isAvailable
    */
   async getAvailableAwardsForUser(uid: string) {
-    if (!uid || uid.trim() === '') {
-      throw new Error('uid is required');
-    }
-
     const address = deriveAddress(uid);
 
     // Osiguraj da wallet postoji
@@ -218,7 +188,7 @@ export class AwardService {
       counts.set(ua.eventId, ua.count);
     }
 
-    const rules = this.awardTableService.listAwardRules();
+    const rules = await this.awardTableService.listAwardRules();
 
     // Business logika za izračunavanje dostupnosti
     return rules.map(rule => {

@@ -5,11 +5,29 @@ import { ChainModule } from '@/chain/chain.module';
 import { AwardTableService } from './award-table.service';
 import { AwardRepository } from './award.repository';
 import { PrismaModule } from '@/prisma/prisma.module';
+import { AwardRuleRepository } from './repositories/award-rule.repository';
+import { TxLogRepository } from './repositories/tx-log.repository';
+import { ConfigModule } from '@nestjs/config';
+import { UserWalletRepository } from '@/wallet/user-wallet.repository';
 
 @Module({
-  imports: [PrismaModule, ChainModule],
-  providers: [AwardService, AwardTableService, AwardRepository],
+  imports: [PrismaModule, ChainModule, ConfigModule],
+  providers: [
+    AwardService,
+    AwardTableService,
+    UserWalletRepository,
+    AwardRepository,
+    TxLogRepository,
+    AwardRuleRepository
+  ],
   controllers: [AwardController],
-  exports: [AwardService, AwardTableService, AwardRepository],
+  exports: [
+    AwardService,
+    AwardTableService,
+    UserWalletRepository,
+    AwardRepository,
+    TxLogRepository,
+    AwardRuleRepository
+  ],
 })
 export class AwardModule {}

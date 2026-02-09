@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Contract, JsonRpcProvider, Wallet } from 'ethers';
-import * as encoinAbi from './abi/encoin.abi.json';
+import encoinAbi from './abi/encoin.abi.json';
 
 @Injectable()
 export class ChainService implements OnModuleInit {

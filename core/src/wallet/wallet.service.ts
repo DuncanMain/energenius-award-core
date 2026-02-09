@@ -53,7 +53,7 @@ export class WalletService {
       type: tx.type,
       eventId: tx.eventId ?? null,
       label: tx.label ?? null,
-      amountWei: tx.amount,
+      amountWei: tx.amount.toString(),
       txHash: tx.txHash,
       createdAt: tx.createdAt.toISOString(),
     }));
