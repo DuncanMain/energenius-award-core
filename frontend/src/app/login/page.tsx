@@ -3,13 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, Wallet, AlertCircle, RefreshCw } from "lucide-react";
+import { parseJwt } from "@/utils/parseJwt";
 
 const API_URL = process.env.NEXUS_API_URL || "http://localhost:3003";
 
-function parseJwt(token: string) {
-  const base64Payload = token.split(".")[1];
-  return JSON.parse(atob(base64Payload));
-}
+
 
 export default function LoginPage() {
   const router = useRouter();
@@ -61,8 +59,7 @@ export default function LoginPage() {
             <Wallet className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">ENERGENIUS</h1>
-            <p className="text-slate-400 text-sm">Dev Login</p>
+            <h1 className="text-2xl font-bold text-white">Award System</h1>
           </div>
         </div>
 
