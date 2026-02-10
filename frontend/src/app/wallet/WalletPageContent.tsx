@@ -5,6 +5,7 @@ import { parseJwt } from "@/utils/parseJwt";
 import WalletBalance from "./components/WalletBalance";
 import AwardList from "./components/AwardList";
 import TransactionList from "./components/TransactionList";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003/";
 
@@ -40,13 +41,13 @@ export default function WalletPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/wallet/${uid}`, { headers });
+      const res = await fetchWithAuth(`${API_URL}/wallet/${uid}`, { headers });
       if (res.ok) {
         const data = await res.json();
         setWallet(data);
       } else if (res.status === 404) {
         const address = `0x${Math.random().toString(16).substr(2, 40)}`;
-        const createRes = await fetch(`${API_URL}/wallets`, {
+        const createRes = await fetchWithAuth(`${API_URL}/wallets`, {
           method: "POST",
           headers,
           body: JSON.stringify({ uid, address }),
@@ -61,7 +62,7 @@ export default function WalletPage() {
 
   const loadAwards = async () => {
     try {
-      const res = await fetch(`${API_URL}/award`, { headers });
+      const res = await fetchWithAuth(`${API_URL}/award`, { headers });
       if (res.ok) setAwards(await res.json());
     } catch (err) {
       console.error("Error loading awards:", err);
@@ -70,7 +71,7 @@ export default function WalletPage() {
 
   const handleCredit = async (amount: number) => {
     try {
-      const res = await fetch(`${API_URL}/wallets/${uid}/credit`, {
+      const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/credit`, {
         method: "POST",
         headers,
         body: JSON.stringify({ amount, description: `Added $${amount}` }),
@@ -83,7 +84,7 @@ export default function WalletPage() {
 
   const handleAward = async (eventId: string) => {
     try {
-      const res = await fetch(`${API_URL}/wallets/${uid}/award`, {
+      const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/award`, {
         method: "POST",
         headers,
         body: JSON.stringify({ eventId }),
