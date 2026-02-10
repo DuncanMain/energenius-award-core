@@ -13,6 +13,7 @@ import { ConsoleLogger } from './logger/console-logger/console-logger';
 import { AwardModule } from './award/award.module';
 import { ChainModule } from './chain/chain.module';
 import { WalletModule } from './wallet/wallet.module';
+import { IntrospectionGuard } from './auth/guards/introspectToken.guard';
 
 @Module({
   imports: [
@@ -29,6 +30,6 @@ import { WalletModule } from './wallet/wallet.module';
     WalletModule,
   ],
   controllers: [AppController],
-  providers: [AppService, ConsoleLogger],
+  providers: [AppService, ConsoleLogger,IntrospectionGuard],
 })
 export class AppModule {}

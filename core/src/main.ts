@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 // import { AccessTokenGuard } from './auth/guards/accessToken.guard';
 import { AppModule } from './app.module';
+import { IntrospectionGuard } from './auth/guards/introspectToken.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,10 +13,10 @@ async function bootstrap() {
   const appVersion = configService.get('APP_VERSION');
 
   // Retrieve the instance of AccessTokenGuard from Nest's context
-  // const accessTokenGuard = app.get(AccessTokenGuard);
+  const introspectionGuard = app.get(IntrospectionGuard);
 
   // Set the guard globally using the retrieved instance
-  // app.useGlobalGuards(accessTokenGuard);
+  app.useGlobalGuards(introspectionGuard);
 
   const config = new DocumentBuilder()
     .setTitle('Change app name')
@@ -35,6 +36,6 @@ async function bootstrap() {
     })
   );
 
-  await app.listen(3003);
+  await app.listen(3004);
 }
 bootstrap();
