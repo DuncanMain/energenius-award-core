@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { parseUnits } from 'ethers';
+import { formatUnits, parseUnits } from 'ethers';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChainService } from '../chain/chain.service';
 import { TxLogRepository } from './repositories/tx-log.repository';
@@ -108,8 +108,8 @@ export class AwardService {
 
       return {
         txHash,
-        address,
-        newBalanceWei: newBalanceWei.toString(),
+        awardedAmount: rule.encAmount, // string/number iz tabele
+        newBalance: formatUnits(newBalanceWei, 18), // "123.45" umesto wei
       };
     });
   }
@@ -204,7 +204,7 @@ export class AwardService {
           remaining: null,
           isAvailable: true,
         };
-      }
+      } 
 
       const remaining = rule.maxCount - awardedCount;
 
