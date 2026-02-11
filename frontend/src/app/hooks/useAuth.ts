@@ -1,36 +1,25 @@
-import { authStorage } from "@/utils/authStorage";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+'use client';
+import { useState } from 'react';
+import { redirect } from 'next/navigation';
+import { parseJwt } from '@/utils/parseJwt';
+import { authStorage } from '@/utils/authStorage';
 
-interface UseAuthOptions {
-  redirectTo?: string;
-}
-
-export function useAuth(options?: UseAuthOptions) {
-  const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-
-  useEffect(() => {
+export function useAuth() {
+  const getAuthData = () => {
     const token = authStorage.getToken();
-    const jwt = authStorage.getUid();
-
-    if (!token || !jwt) {
-      setIsAuthenticated(false);
-
-      if (options?.redirectTo) {
-        router.replace(options.redirectTo);
-      }
-    } else {
-      setIsAuthenticated(true);
+    
+    if (!token) {
+      redirect('/login');
+      return null;
     }
-  }, [router, options?.redirectTo]);
-
-  const logout = () => {
-    authStorage.clearAuth();
-    router.replace("/login");
+    
+    const payload = parseJwt(token);
+    return { jwt: token, uid: payload.sub };
   };
-  return {
-    isAuthenticated,
-    logout,
-  };
+  
+  const authData = getAuthData();
+  const [jwt] = useState(authData?.jwt);
+  const [uid] = useState(authData?.uid);
+  
+  return { jwt, uid };
 }

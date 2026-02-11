@@ -137,6 +137,7 @@ export class AwardService {
 
     // 2. KRITIČNO: Provjeri balans PRIJE blockchain-a
     const bal = await this.chainService.balanceOf(address);
+    console.log(bal, amountEnc);
     if (bal < amountEnc) {
       throw new AwardCoreError('INSUFFICIENT_BALANCE', 'insufficient balance');
     }

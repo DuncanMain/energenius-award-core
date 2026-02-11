@@ -22,17 +22,16 @@ export function useWallet(uid: string | null) {
     if (!uid) return;
     setLoading(true);
     try {
-      // fetchWithAuth već baca grešku za non-ok response
       const data = await fetchWithAuth<Wallet>(`${API_URL}/wallet/${uid}`);
 
-      // Konvertuj balans
       data.balanceWei = Number(convertToETH(data.balanceWei));
+
       setWallet(data);
 
-      // Toast samo ako se balans poveća
+      console.log(data.balanceWei);
       if (prevBalance.current && data.balanceWei > prevBalance.current) {
         const diff = data.balanceWei - prevBalance.current;
-        toast.success(`Balance increased by $${convertToETH(diff)}`);
+        toast.success(`Balance increased by $${diff}`);
       }
       prevBalance.current = data.balanceWei;
     } catch (err: any) {

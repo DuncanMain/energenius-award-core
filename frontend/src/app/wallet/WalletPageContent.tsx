@@ -10,6 +10,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { useWallet } from "./hooks/useWallet";
 import toast from "react-hot-toast";
 import { authStorage } from "@/utils/authStorage";
+import { useAuth } from "../hooks/useAuth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -24,17 +25,10 @@ export interface AwardsResponse {
 }
 
 export default function WalletPage() {
-  const [uid, setUid] = useState<string | null>(null);
   const [awards, setAwards] = useState<AwardsResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    const token = authStorage.getToken()
-    if (!token) return;
 
-    const payload = parseJwt(token);
-    setUid(payload.sub);
-  }, []);
-
+  const { uid, jwt } = useAuth();
   const { wallet, loading, reload, spend } = useWallet(uid!);
 
   useEffect(() => {
@@ -72,7 +66,7 @@ export default function WalletPage() {
         method: "POST",
         body: JSON.stringify({ uid, eventId }),
       });
-        reload();
+      reload();
     } catch (err: any) {
       toast.error(err.message.message || "Failed to claim award");
     }
