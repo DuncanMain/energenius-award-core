@@ -9,15 +9,26 @@ import TransactionList from "./components/TransactionList";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { useWallet } from "./hooks/useWallet";
 import toast from "react-hot-toast";
+import { authStorage } from "@/utils/authStorage";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
+export interface AwardsResponse {
+  id: number;
+  title: string;
+  encAmount: number;
+  maxCount: number;
+  awardedCount: number;
+  remaining: number;
+  isAvailable: boolean;
+}
+
 export default function WalletPage() {
   const [uid, setUid] = useState<string | null>(null);
-  const [awards, setAwards] = useState<any[]>([]);
+  const [awards, setAwards] = useState<AwardsResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    const token = localStorage.getItem("jwt");
+    const token = authStorage.getToken()
     if (!token) return;
 
     const payload = parseJwt(token);
@@ -33,10 +44,12 @@ export default function WalletPage() {
 
   const loadAwards = async () => {
     try {
-      const res = await fetchWithAuth(`${API_URL}/award`);
-      if (res.ok) setAwards(await res.json());
-    } catch {
-      console.error("Failed to load awards");
+      const res = await fetchWithAuth<AwardsResponse[]>(
+        `${API_URL}/award/available/${uid}`,
+      );
+      setAwards(res);
+    } catch (err) {
+      console.error("Failed to load awards:", err);
     }
   };
 
@@ -55,18 +68,13 @@ export default function WalletPage() {
 
   const handleAward = async (eventId: string) => {
     try {
-      const res = await fetchWithAuth(`${API_URL}/award/event`, {
+      const res = await fetchWithAuth<any>(`${API_URL}/award/event`, {
         method: "POST",
         body: JSON.stringify({ uid, eventId }),
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        toast.error(errorData?.message?.message || "Failed to claim award");
-      }
-      if (res.ok) reload();
+        reload();
     } catch (err: any) {
-      console.log(err);
-      toast.error(err.message);
+      toast.error(err.message.message || "Failed to claim award");
     }
   };
 

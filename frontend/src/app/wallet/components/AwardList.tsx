@@ -1,9 +1,10 @@
 'use client';
 import React from "react";
 import AwardItem from "./AwardItem";
+import { AwardsResponse } from "../WalletPageContent";
 
 interface AwardListProps {
-  awards: any[];    
+  awards: AwardsResponse[];    
   onClaim: (eventId: string) => void;
 }
 

@@ -144,7 +144,8 @@ export class AwardService {
     // 3. DATABASE TRANSACTION
     return await this.prisma.$transaction(async tx => {
       // Blockchain spend transakcija
-      const txHash = await this.chainService.spend(address, amountEnc);
+      const amountWei = BigInt(parseUnits(amountEnc.toString(), 18).toString());
+      const txHash = await this.chainService.spend(address, amountWei);
 
       // Snimi tx_log
       await this.txLogRepo.createInTransaction(

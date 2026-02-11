@@ -1,5 +1,7 @@
-
-export async function fetchWithAuth(url: string, options: RequestInit = {}) {
+export async function fetchWithAuth<T = any>(
+  url: string,
+  options: RequestInit = {}
+): Promise<T> {
   const token = localStorage.getItem("jwt");
 
   const headers = new Headers(options.headers || {});
@@ -16,5 +18,11 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     throw new Error("Unauthorized");
   }
 
-  return res;
+  if (!res.ok) {
+    const err = await res.json();
+    throw err
+  }
+
+  const data: T = await res.json();
+  return data;
 }

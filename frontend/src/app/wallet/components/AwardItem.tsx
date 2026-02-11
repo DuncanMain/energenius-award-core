@@ -1,14 +1,10 @@
 "use client";
 import { RefreshCw } from "lucide-react";
 import React, { useState } from "react";
+import { AwardsResponse } from "../WalletPageContent";
 
 interface AwardItemProps {
-  award: {
-    id: string;
-    eventId: string;
-    title: string;
-    encAmount: number;
-  };
+  award: AwardsResponse;
   onClaim: (eventId: string) => void;
 }
 
@@ -18,7 +14,7 @@ export default function AwardItem({ award, onClaim }: AwardItemProps) {
   const onClaimWithLoader = async ()=>{
     setLoader(true);
     try {
-      await onClaim(award.id);
+      await onClaim(award.id.toString());
     } finally {
       setLoader(false);
     }
@@ -28,8 +24,8 @@ export default function AwardItem({ award, onClaim }: AwardItemProps) {
     <>
       <button
         onClick={onClaimWithLoader}
-        className={`w-full bg-slate-700 hover:bg-slate-600 p-3 rounded-xl text-left`}
-        disabled={loader}
+        className={`w-full bg-slate-700 hover:bg-slate-600 p-3 rounded-xl text-left ${award.remaining === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+        disabled={loader || award.remaining === 0}
       >
         
         <div className="font-semibold">{award.title}</div>

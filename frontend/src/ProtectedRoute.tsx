@@ -3,6 +3,7 @@
 import { useEffect, ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseJwt } from "@/utils/parseJwt";
+import { authStorage } from "./utils/authStorage";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -13,7 +14,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("jwt");
+    const token = authStorage.getToken();
 
     if (!token) {
       router.replace("/login"); // redirect ako nije token
@@ -26,14 +27,14 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
       // opcionalno: provera isteka tokena
       const exp = payload.exp;
       if (exp && Date.now() >= exp * 1000) {
-        localStorage.removeItem("jwt");
+        authStorage.clearAuth();
         router.replace("/login");
         return;
       }
 
       setLoading(false); // korisnik validan
     } catch (err) {
-      localStorage.removeItem("jwt");
+      authStorage.clearAuth();
       router.replace("/login");
     }
   }, []);
