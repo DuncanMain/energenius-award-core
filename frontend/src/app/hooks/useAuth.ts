@@ -2,11 +2,11 @@
 import { useState } from 'react';
 import { redirect } from 'next/navigation';
 import { parseJwt } from '@/utils/parseJwt';
+import { authStorage } from '@/utils/authStorage';
 
 export function useAuth() {
   const getAuthData = () => {
-    const token = localStorage.getItem('jwt');
-    
+    const token = authStorage.getToken();    
     if (!token) {
       redirect('/login');
       return null;

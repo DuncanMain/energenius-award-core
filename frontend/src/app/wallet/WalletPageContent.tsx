@@ -7,6 +7,7 @@ import AwardList from "./components/AwardList";
 import TransactionList from "./components/TransactionList";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { useAuth } from "../hooks/useAuth";
+import { convertToETH } from "@/utils/convert";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003/";
 
@@ -31,6 +32,9 @@ export default function WalletPage() {
       const res = await fetchWithAuth(`${API_URL}/wallet/${uid}`);
       if (res.ok) {
         const data = await res.json();
+
+        data.balanceWei = convertToETH(data.balanceWei);    
+
         setWallet(data);
       } else if (res.status === 404) {
         const address = `0x${Math.random().toString(16).substr(2, 40)}`;
@@ -122,7 +126,7 @@ export default function WalletPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <WalletBalance
-              balance={wallet?.balance || 0}
+              balance={wallet?.balanceWei || 0}
               onCredit={handleCredit}
             />
 

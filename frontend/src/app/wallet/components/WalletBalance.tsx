@@ -13,7 +13,7 @@ export default function WalletBalance({ balance, onCredit }: WalletBalanceProps)
       <div className="flex justify-between items-start mb-6">
         <div>
           <p className="text-cyan-100 mb-2">Total Balance</p>
-          <h2 className="text-5xl font-bold">${balance.toFixed(2)}</h2>
+          <h2 className="text-5xl font-bold">${parseFloat(balance.toString()).toFixed(2)}</h2>
         </div>
         <div className="bg-white/20 p-3 rounded-xl">
           <TrendingUp className="w-6 h-6" />
