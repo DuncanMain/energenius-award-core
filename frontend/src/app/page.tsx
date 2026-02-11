@@ -1,8 +1,7 @@
-// app/page.tsx
-'use client';
+"use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { parseJwt } from "@/utils/parseJwt";
 
 export default function Home() {
@@ -23,4 +22,5 @@ export default function Home() {
   }, [router]);
 
   return null; // ili loader dok redirect traje
+
 }

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { useState, useEffect } from "react";
 import { Wallet, History, RefreshCw, AlertCircle, Gift } from "lucide-react";
 import { parseJwt } from "@/utils/parseJwt";
@@ -6,30 +6,17 @@ import WalletBalance from "./components/WalletBalance";
 import AwardList from "./components/AwardList";
 import TransactionList from "./components/TransactionList";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { useAuth } from "../hooks/useAuth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003/";
 
 export default function WalletPage() {
-  const [uid, setUid] = useState<string | null>(null);
-  const [jwt, setJwt] = useState<string | null>(null);
   const [wallet, setWallet] = useState<any>(null);
   const [awards, setAwards] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem("jwt");
-    if (!token) return;
-    const payload = parseJwt(token);
-    setJwt(token);
-    setUid(payload.sub);
-  }, []);
-
-  const headers = new Headers();
-  if (jwt) {
-    headers.set("Authorization", `Bearer ${jwt}`);
-    headers.set("Content-Type", "application/json");
-  }
+  const { jwt, uid } = useAuth();
 
   useEffect(() => {
     if (!uid || !jwt) return;
@@ -41,7 +28,7 @@ export default function WalletPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchWithAuth(`${API_URL}/wallet/${uid}`, { headers });
+      const res = await fetchWithAuth(`${API_URL}/wallet/${uid}`);
       if (res.ok) {
         const data = await res.json();
         setWallet(data);
@@ -49,7 +36,6 @@ export default function WalletPage() {
         const address = `0x${Math.random().toString(16).substr(2, 40)}`;
         const createRes = await fetchWithAuth(`${API_URL}/wallets`, {
           method: "POST",
-          headers,
           body: JSON.stringify({ uid, address }),
         });
         if (createRes.ok) setWallet(await createRes.json());
@@ -62,7 +48,7 @@ export default function WalletPage() {
 
   const loadAwards = async () => {
     try {
-      const res = await fetchWithAuth(`${API_URL}/award`, { headers });
+      const res = await fetchWithAuth(`${API_URL}/award`);
       if (res.ok) setAwards(await res.json());
     } catch (err) {
       console.error("Error loading awards:", err);
@@ -73,11 +59,10 @@ export default function WalletPage() {
     try {
       const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/credit`, {
         method: "POST",
-        headers,
         body: JSON.stringify({ amount, description: `Added $${amount}` }),
       });
       if (res.ok) await loadWallet();
-    } catch {
+    } catch (err) {
       setError("Failed to add funds");
     }
   };
@@ -86,7 +71,6 @@ export default function WalletPage() {
     try {
       const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/award`, {
         method: "POST",
-        headers,
         body: JSON.stringify({ eventId }),
       });
       if (res.ok) await loadWallet();
@@ -109,7 +93,10 @@ export default function WalletPage() {
             </div>
           </div>
           <button
-            onClick={() => { loadWallet(); loadAwards(); }}
+            onClick={() => {
+              loadWallet();
+              loadAwards();
+            }}
             className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -121,7 +108,9 @@ export default function WalletPage() {
           <div className="mb-6 bg-red-500/20 border border-red-500 rounded-xl p-4 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-red-400" />
             <p className="text-red-300">{error}</p>
-            <button onClick={() => setError(null)} className="ml-auto">✕</button>
+            <button onClick={() => setError(null)} className="ml-auto">
+              ✕
+            </button>
           </div>
         )}
 
@@ -132,7 +121,10 @@ export default function WalletPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <WalletBalance balance={wallet?.balance || 0} onCredit={handleCredit} />
+            <WalletBalance
+              balance={wallet?.balance || 0}
+              onCredit={handleCredit}
+            />
 
             <div className="bg-slate-800 rounded-3xl p-6 shadow-xl">
               <div className="flex items-center gap-2 mb-4">
