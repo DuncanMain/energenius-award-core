@@ -3,7 +3,7 @@ import React from "react";
 import AwardItem from "./AwardItem";
 
 interface AwardListProps {
-  awards: any[];
+  awards: any[];    
   onClaim: (eventId: string) => void;
 }
 

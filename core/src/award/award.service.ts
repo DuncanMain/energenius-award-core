@@ -1,5 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { parseUnits } from 'ethers';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { formatUnits, parseUnits } from 'ethers';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChainService } from '../chain/chain.service';
 import { TxLogRepository } from './repositories/tx-log.repository';
@@ -44,14 +48,13 @@ export class AwardService {
     // 2. PROVJERA DA LI NAGRADA POSTOJI
     const rule = await this.awardTableService.getAwardRuleById(eventId);
     if (!rule) {
-      throw new AwardCoreError('UNKNOWN_ACTION', `Unknown eventId: ${eventId}`);
+      throw new NotFoundException(`Unknown eventId: ${eventId}`);
     }
 
     const address = deriveAddress(uid);
     const amountWei = BigInt(parseUnits(rule.encAmount, 18).toString());
     // const chainId = this.chainService.getChainId();
-    // 5. BLOCKCHAIN TRANSAKCIJA
-    const txHash = await this.chainService.award(address, amountWei);
+
     // 3. DATABASE TRANSACTION SA BUSINESS LOGIKOM
     return await this.prisma.$transaction(async tx => {
       // Osiguraj da wallet postoji, prvo kreiramo wallet
@@ -73,15 +76,17 @@ export class AwardService {
 
       const currentCount = userAward?.count ?? 0;
       const maxCount = Number(rule.maxCount);
+      console.log(currentCount, maxCount);
       const unlimited = maxCount === 0;
 
       // 4. PROVJERA MAXCOUNT LIMITA
       if (!unlimited && currentCount >= maxCount) {
-        throw new AwardCoreError(
-          'MAXCOUNT_EXCEEDED',
-          'maxCount reached for this award'
-        );
+        throw new ForbiddenException('maxCount reached for this award');
       }
+
+      // 5. BLOCKCHAIN TRANSAKCIJA
+      const txHash = await this.chainService.award(address, amountWei);
+
       const chainId = Number(this.configService.get<string>('CHAIN_ID'));
 
       // 6. UPDATE BAZE
@@ -108,8 +113,8 @@ export class AwardService {
 
       return {
         txHash,
-        address,
-        newBalanceWei: newBalanceWei.toString(),
+        awardedAmount: rule.encAmount, // string/number iz tabele
+        newBalance: formatUnits(newBalanceWei, 18), // "123.45" umesto wei
       };
     });
   }
