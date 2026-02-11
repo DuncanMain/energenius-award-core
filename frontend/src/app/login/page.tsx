@@ -3,13 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, Wallet, AlertCircle, RefreshCw } from "lucide-react";
+import { parseJwt } from "@/utils/parseJwt";
 
 const API_URL = process.env.NEXUS_API_URL || "http://localhost:3003";
-
-function parseJwt(token: string) {
-  const base64Payload = token.split(".")[1];
-  return JSON.parse(atob(base64Payload));
-}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -45,7 +41,7 @@ export default function LoginPage() {
       localStorage.setItem("jwt", accessToken);
       localStorage.setItem("uid", payload.sub);
 
-      router.push("/"); // ili /dashboard ako želiš
+      router.push("/"); 
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
