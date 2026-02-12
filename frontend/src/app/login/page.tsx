@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Mail, Lock, Wallet, AlertCircle, RefreshCw } from "lucide-react";
-import { parseJwt } from "@/utils/parseJwt";
-
-const API_URL = process.env.NEXUS_API_URL || "http://localhost:3003";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Mail, Lock, Wallet, AlertCircle, RefreshCw } from 'lucide-react';
+import { parseJwt } from '@/utils/parseJwt';
+import { userApi } from '../api/userApi';
+import { authStorage } from '@/utils/authStorage';
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,31 +19,18 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Invalid email or password");
+      const res = await userApi.login({ email, password });
+      if (!res.success) {
+        throw new Error(res.error || 'Invalid email or password2');
       }
+      const accessToken = res?.data?.access_token;
+      const payload = parseJwt(accessToken!);
 
-      const data = await res.json();
-
-      const accessToken = data.access_token;
-      const payload = parseJwt(accessToken);
-
-      localStorage.setItem("jwt", accessToken);
-      localStorage.setItem("uid", payload.sub);
-
-      router.push("/"); 
+      authStorage.setAuth(accessToken!, payload.sub);
+      router.push('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -77,7 +64,7 @@ export default function LoginPage() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 className="w-full bg-slate-700 text-white pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400"
                 placeholder="test@test.com"
               />
@@ -94,7 +81,7 @@ export default function LoginPage() {
                 type="password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 className="w-full bg-slate-700 text-white pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400"
                 placeholder="••••••••"
               />

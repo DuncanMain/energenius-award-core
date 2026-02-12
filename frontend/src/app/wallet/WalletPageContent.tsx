@@ -1,15 +1,15 @@
-"use client";
-import { useState, useEffect } from "react";
-import { Wallet, History, RefreshCw, AlertCircle, Gift } from "lucide-react";
-import { parseJwt } from "@/utils/parseJwt";
-import WalletBalance from "./components/WalletBalance";
-import AwardList from "./components/AwardList";
-import TransactionList from "./components/TransactionList";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { useAuth } from "../hooks/useAuth";
-import { convertToETH } from "@/utils/convert";
+'use client';
+import { useState, useEffect } from 'react';
+import { Wallet, History, RefreshCw, AlertCircle, Gift } from 'lucide-react';
+import WalletBalance from './components/WalletBalance';
+import AwardList from './components/AwardList';
+import TransactionList from './components/TransactionList';
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { useAuth } from '../hooks/useAuth';
+import { convertToETH } from '@/utils/convert';
+import { walletApi } from '../api/walletApi';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003/";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003/';
 
 export default function WalletPage() {
   const [wallet, setWallet] = useState<any>(null);
@@ -29,23 +29,23 @@ export default function WalletPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchWithAuth(`${API_URL}/wallet/${uid}`);
-      if (res.ok) {
-        const data = await res.json();
-
-        data.balanceWei = convertToETH(data.balanceWei);    
-
-        setWallet(data);
-      } else if (res.status === 404) {
+      const res = await walletApi.getWallet(uid);
+      if (!res.success && res.error?.includes('not found')) {
         const address = `0x${Math.random().toString(16).substr(2, 40)}`;
-        const createRes = await fetchWithAuth(`${API_URL}/wallets`, {
-          method: "POST",
-          body: JSON.stringify({ uid, address }),
-        });
-        if (createRes.ok) setWallet(await createRes.json());
-      } else throw new Error("Failed to load wallet");
+        const createRes = await walletApi.createWallet(uid!, address);
+        if (createRes.success) {
+          setWallet(createRes.data);
+        }
+      }if (res.success) {
+        res.data.balanceWei = convertToETH(res.data.balanceWei);
+        setWallet(res.data);
+      } else {
+        throw new Error(res.error || 'Failed to load wallet');
+      }
+       if (createRes.success) setWallet(createRes.data);
+       else throw new Error('Failed to load wallet');
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : 'An error occurred');
     }
     setLoading(false);
   };
@@ -55,31 +55,31 @@ export default function WalletPage() {
       const res = await fetchWithAuth(`${API_URL}/award`);
       if (res.ok) setAwards(await res.json());
     } catch (err) {
-      console.error("Error loading awards:", err);
+      console.error('Error loading awards:', err);
     }
   };
 
   const handleCredit = async (amount: number) => {
     try {
       const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/credit`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({ amount, description: `Added $${amount}` }),
       });
       if (res.ok) await loadWallet();
     } catch (err) {
-      setError("Failed to add funds");
+      setError('Failed to add funds');
     }
   };
 
   const handleAward = async (eventId: string) => {
     try {
       const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/award`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({ eventId }),
       });
       if (res.ok) await loadWallet();
     } catch {
-      setError("Failed to claim award");
+      setError('Failed to claim award');
     }
   };
 
@@ -103,7 +103,7 @@ export default function WalletPage() {
             }}
             className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>
