@@ -54,7 +54,7 @@ export default function WalletPage() {
         body: JSON.stringify({ amount, description: `Added $${amount}` }),
       });
 
-      if (res.ok) reload(); // ✅
+      if (res.ok) reload(); 
     } catch {
       setError("Failed to add funds");
     }

@@ -17,7 +17,6 @@ export function useWallet(uid: string | null) {
   const [error, setError] = useState<string | null>(null);
   const prevBalance = useRef<number>(0);
 
-
   const loadWallet = async () => {
     if (!uid) return;
     setLoading(true);
@@ -35,7 +34,7 @@ export function useWallet(uid: string | null) {
       }
       prevBalance.current = data.balanceWei;
     } catch (err: any) {
-        toast.error(err.message || "Unknown error");
+      toast.error(err.message || "Unknown error");
       setError(err.message || "Unknown error");
     }
     setLoading(false);
@@ -62,24 +61,20 @@ export function useWallet(uid: string | null) {
     if (!confirmed) return;
 
     try {
-      const res = await fetchWithAuth(`${API_URL}/wallet/spend`, {
+      const response = await fetchWithAuth(`${API_URL}/wallet/spend`, {
         method: "POST",
         body: JSON.stringify({ uid, amount, label }),
       });
 
-      if (!res.ok) throw new Error("Spend failed");
-
-      const data = await res.json();
-
       onSuccess?.({
-        txHash: data.txHash,
+        txHash: response.txHash,
         amount,
         label,
       });
 
       loadWallet();
     } catch (err: any) {
-      toast.error(err.message || "Spend failed");
+      toast.error(err.message.message || "Spend failed");
     }
   };
 
