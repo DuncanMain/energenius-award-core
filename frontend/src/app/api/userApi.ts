@@ -31,9 +31,7 @@ class UserApi extends BaseApi {
     return await this.handleRequest(() =>
       fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {"Content-type":"application/json"},
         body: JSON.stringify(data),
       })
     );

@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, ReactNode, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { parseJwt } from '@/utils/parseJwt';
 import { authStorage } from './utils/authStorage';
 
-interface PublicRouteProps {
+interface ProtectedRouteProps {
   children: React.ReactNode;
   redirectIfLoggedIn?: string;
 }
@@ -13,42 +13,52 @@ interface PublicRouteProps {
 export default function ProtectedRoute({
   children,
   redirectIfLoggedIn = '/wallet',
-}: PublicRouteProps) {
+}: ProtectedRouteProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-
+  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
   useEffect(() => {
-    const token = authStorage.getToken();
+    const checkAuth = () => {
+      const token = authStorage.getToken();
 
-    if (!token) {
-      router.replace('/login');
-      return;
-    }
-
-    try {
-      const payload = parseJwt(token);
-
-      const exp = payload.exp;
-      console.log('Dosli da ispitamo');
-      if (!exp || Date.now() < exp * 1000) {
-        console.log('User is authenticated and token is valid');
-        router.replace(redirectIfLoggedIn);
+      if (!token) {
+        setAuthState('unauthenticated');
         return;
-      } else {
-        authStorage.clearAuth();
       }
-    } catch (err) {
-      authStorage.clearAuth();
-      router.replace('/login');
-    } finally {
-      setLoading(false);
-    }
+
+      try {
+        const payload = parseJwt(token);
+        const exp = payload.exp;
+
+        if (exp && Date.now() < exp * 1000) {
+          setAuthState('authenticated');
+        } else {
+          authStorage.clearAuth();
+          setAuthState('unauthenticated');
+        }
+      } catch (err) {
+        authStorage.clearAuth();
+        setAuthState('unauthenticated');
+      }
+    };
+
+    checkAuth();
   }, []);
 
-  if (loading) {
+  useEffect(() => {
+    if (authState === 'authenticated') {
+      router.replace(redirectIfLoggedIn);
+    } else if (authState === 'unauthenticated') {
+      router.replace('/login');
+    }
+  }, [authState, router, redirectIfLoggedIn]);
+
+  if (authState === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center text-black">
-        Checking authentication...
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
       </div>
     );
   }

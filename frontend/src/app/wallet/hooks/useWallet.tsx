@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import toast from 'react-hot-toast';
 import { convertToETH } from '@/utils/convert';
 import { walletApi } from '@/app/api/walletApi';
+import { fetchWithAuth } from '@/app/api/fetchWithAuth';
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 interface Wallet {
@@ -33,12 +33,10 @@ export function useWallet(uid: string | null) {
           toast.success(`Balance increased by $${diff}`);
         }
         prevBalance.current = data.balanceWei;
-      }
-      else{
-        toast.error("Error");
+      } else {
+        setError(res.error || 'Unknown error');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Unknown error');
       setError(err.message || 'Unknown error');
     }
     setLoading(false);
@@ -63,21 +61,22 @@ export function useWallet(uid: string | null) {
 
     const confirmed = window.confirm(`Spend $${amount} for "${label}"?`);
     if (!confirmed) return;
-
     try {
-      const response = await fetchWithAuth(`${API_URL}/wallet/spend`, {
-        method: 'POST',
-        body: JSON.stringify({ uid, amount, label }),
-      });
+      const response = await walletApi.spend(uid, amount, label);
 
-      onSuccess?.({
-        txHash: response.txHash,
-        amount,
-        label,
-      });
-
-      loadWallet();
+      if (response.success && response.data) {
+        onSuccess?.({
+          txHash: response.data.txHash,
+          amount,
+          label,
+        });
+        loadWallet();
+      } else {
+        console.log(response);
+        toast.error(response.error || 'Spend failed');
+      }
     } catch (err: any) {
+      console.log(err);
       toast.error(err.message.message || 'Spend failed');
     }
   };

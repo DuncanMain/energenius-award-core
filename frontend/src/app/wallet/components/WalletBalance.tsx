@@ -1,9 +1,9 @@
-// app/wallet/components/WalletBalance.tsx
-"use client";
-import { TrendingUp } from "lucide-react";
+'use client';
+import { formatBalance } from '@/utils/formatCurrency';
+import { TrendingUp } from 'lucide-react';
 
 interface WalletBalanceProps {
-  balance: number;
+  balance: number | null;
   onCredit: (amount: number) => void;
   spend: (amount: number, label?: string, onSuccess?: (data: any) => void) => Promise<void>;
 }
@@ -25,7 +25,7 @@ export default function WalletBalance({
       <div className="flex justify-between items-start mb-6">
         <div>
           <p className="text-cyan-100 mb-2">Total Balance</p>
-          <h2 className="text-5xl font-bold">${balance}</h2>
+          <h2 className="text-5xl font-bold">${formatBalance(balance)}</h2>
           <button
             onClick={handleSpend}
             className="mt-2 bg-cyan-500 px-4 py-2 rounded"
@@ -37,7 +37,7 @@ export default function WalletBalance({
           <TrendingUp className="w-6 h-6" />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      {/* <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => onCredit(100)}
           className="bg-white text-blue-600 px-6 py-3 rounded-xl font-semibold"
@@ -50,7 +50,7 @@ export default function WalletBalance({
         >
           Add $50
         </button>
-      </div>
+      </div> */}
     </div>
   );
 }

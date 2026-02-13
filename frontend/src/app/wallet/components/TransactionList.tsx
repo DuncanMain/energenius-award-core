@@ -1,4 +1,3 @@
-// app/wallet/components/TransactionList.tsx
 'use client';
 import TransactionItem from './TransactionItem';
 
@@ -16,7 +15,9 @@ export default function TransactionList({
   }
   return (
     <div className="space-y-2">
-      {transactions.map((tx, index) => <TransactionItem key={index} tx={tx} />)}
+      {transactions.map((tx,index) => (
+        <TransactionItem key={index} tx={tx} />
+      ))}
     </div>
   );
 }

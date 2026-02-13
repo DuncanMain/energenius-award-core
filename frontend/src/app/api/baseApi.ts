@@ -35,7 +35,6 @@ export abstract class BaseApi {
             return createErrorResponse(message);
         }
       }
-
       const data: T = await response.json();
       return createSuccessResponse(data);
     } catch (error: any) {

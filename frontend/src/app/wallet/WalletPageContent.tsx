@@ -4,21 +4,19 @@ import { Wallet, History, RefreshCw, AlertCircle, Gift } from 'lucide-react';
 import WalletBalance from './components/WalletBalance';
 import AwardList from './components/AwardList';
 import TransactionList from './components/TransactionList';
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import { useAuth } from '../hooks/useAuth';
 import { convertToETH } from '@/utils/convert';
 import { Award, walletApi } from '../api/walletApi';
 import { useWallet } from './hooks/useWallet';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003/';
 
 export default function WalletPage() {
   const [awards, setAwards] = useState<Award[] | null>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { uid, jwt } = useAuth();
-  const { wallet, reload, spend, setWallet } = useWallet(uid!);
+  const { wallet, spend, setWallet } = useWallet(uid!);
 
   useEffect(() => {
     if (!uid) return;
@@ -63,15 +61,15 @@ export default function WalletPage() {
   };
 
   const handleCredit = async (amount: number) => {
-    try {
-      const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/credit`, {
-        method: 'POST',
-        body: JSON.stringify({ amount, description: `Added $${amount}` }),
-      });
-      if (res.ok) await loadWallet();
-    } catch (err) {
-      setError('Failed to add funds');
-    }
+    // try {
+    //   const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/credit`, {
+    //     method: 'POST',
+    //     body: JSON.stringify({ amount, description: `Added $${amount}` }),
+    //   });
+    //   if (res.ok) await loadWallet();
+    // } catch (err) {
+    //   setError('Failed to add funds');
+    // }
   };
 
   const handleAward = async (eventId: string) => {
@@ -80,6 +78,9 @@ export default function WalletPage() {
       if(res.success){
         await loadWallet();
         toast.success("Successfully claim award");
+      }
+      else{
+        toast.error(res.error);
       }
     } catch {
       toast.error("Occurred an error to claim award")
@@ -131,7 +132,7 @@ export default function WalletPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <WalletBalance
               balance={wallet?.balanceWei || 0}
-              spend={spend || (() => {})}
+              spend={spend}
               onCredit={handleCredit}
             />
 

@@ -14,6 +14,11 @@ export interface Award {
   name: string;
   description: string;
 }
+export interface SpendResponse {
+  txHash: string;
+  address: string;
+  newBalanceWei: string;
+}
 
 class WalletApi extends BaseApi {
   async getWallet(uid: string): Promise<ApiResponse<Wallet>> {
@@ -49,7 +54,16 @@ class WalletApi extends BaseApi {
     return this.handleRequest(() =>
       authFetch(`${API_BASE_URL}/award/event`, {
         method: 'POST',
-        body: JSON.stringify({ eventId,uid }),
+        body: JSON.stringify({ eventId, uid }),
+      })
+    );
+  }
+
+  async spend(uid: string, amount: number,label: string): Promise<ApiResponse<SpendResponse>> {
+    return this.handleRequest(() =>
+      authFetch(`${API_BASE_URL}/wallet/spend`, {
+        method: 'POST',
+        body: JSON.stringify({ uid, amount, label }),
       })
     );
   }
@@ -57,8 +71,10 @@ class WalletApi extends BaseApi {
   async getAwards(): Promise<ApiResponse<Award[]>> {
     return this.handleRequest(() => authFetch(`/award`));
   }
-  async getAvailableAwards(uid : string): Promise<ApiResponse<Award[]>> {
-    return this.handleRequest(() => authFetch(`${API_BASE_URL}/award/available/${uid}`));
+  async getAvailableAwards(uid: string): Promise<ApiResponse<Award[]>> {
+    return this.handleRequest(() =>
+      authFetch(`${API_BASE_URL}/award/available/${uid}`)
+    );
   }
 }
 
