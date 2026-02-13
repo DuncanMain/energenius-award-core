@@ -9,7 +9,7 @@ interface Wallet {
   balanceWei: string;
   history: any[];
 }
-interface Award {
+export interface Award {
   id: string;
   name: string;
   description: string;
@@ -47,15 +47,18 @@ class WalletApi extends BaseApi {
 
   async claimAward(uid: string, eventId: string): Promise<ApiResponse<Wallet>> {
     return this.handleRequest(() =>
-      authFetch(`/wallets/${uid}/award`, {
+      authFetch(`${API_BASE_URL}/award/event`, {
         method: 'POST',
-        body: JSON.stringify({ eventId }),
+        body: JSON.stringify({ eventId,uid }),
       })
     );
   }
 
   async getAwards(): Promise<ApiResponse<Award[]>> {
     return this.handleRequest(() => authFetch(`/award`));
+  }
+  async getAvailableAwards(uid : string): Promise<ApiResponse<Award[]>> {
+    return this.handleRequest(() => authFetch(`${API_BASE_URL}/award/available/${uid}`));
   }
 }
 

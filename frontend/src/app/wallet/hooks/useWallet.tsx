@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import toast from "react-hot-toast";
-import { convertToETH } from "@/utils/convert";
+import { useState, useEffect, useRef } from 'react';
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import toast from 'react-hot-toast';
+import { convertToETH } from '@/utils/convert';
+import { walletApi } from '@/app/api/walletApi';
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 interface Wallet {
@@ -21,19 +22,24 @@ export function useWallet(uid: string | null) {
     if (!uid) return;
     setLoading(true);
     try {
-      const data = await fetchWithAuth<Wallet>(`${API_URL}/wallet/${uid}`);
+      const res = await walletApi.getWallet(uid);
 
-      data.balanceWei = Number(convertToETH(data.balanceWei));
-      setWallet(data);
-      console.log(data.balanceWei);
-      if (prevBalance.current && data.balanceWei > prevBalance.current) {
-        const diff = data.balanceWei - prevBalance.current;
-        toast.success(`Balance increased by $${diff}`);
+      if (res.success) {
+        const data = res.data;
+        data.balanceWei = Number(convertToETH(data.balanceWei));
+        setWallet(data);
+        if (prevBalance.current && data.balanceWei > prevBalance.current) {
+          const diff = data.balanceWei - prevBalance.current;
+          toast.success(`Balance increased by $${diff}`);
+        }
+        prevBalance.current = data.balanceWei;
       }
-      prevBalance.current = data.balanceWei;
+      else{
+        toast.error("Error");
+      }
     } catch (err: any) {
-      toast.error(err.message || "Unknown error");
-      setError(err.message || "Unknown error");
+      toast.error(err.message || 'Unknown error');
+      setError(err.message || 'Unknown error');
     }
     setLoading(false);
   };
@@ -51,7 +57,7 @@ export function useWallet(uid: string | null) {
       txHash: string;
       amount: number;
       label: string;
-    }) => void,
+    }) => void
   ) => {
     if (!uid) return;
 
@@ -60,7 +66,7 @@ export function useWallet(uid: string | null) {
 
     try {
       const response = await fetchWithAuth(`${API_URL}/wallet/spend`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({ uid, amount, label }),
       });
 
@@ -72,9 +78,9 @@ export function useWallet(uid: string | null) {
 
       loadWallet();
     } catch (err: any) {
-      toast.error(err.message.message || "Spend failed");
+      toast.error(err.message.message || 'Spend failed');
     }
   };
 
-  return { wallet, loading, error, reload: loadWallet, spend,setWallet };
+  return { wallet, loading, error, reload: loadWallet, spend, setWallet };
 }

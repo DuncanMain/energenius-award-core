@@ -7,13 +7,14 @@ import TransactionList from './components/TransactionList';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import { useAuth } from '../hooks/useAuth';
 import { convertToETH } from '@/utils/convert';
-import { walletApi } from '../api/walletApi';
+import { Award, walletApi } from '../api/walletApi';
 import { useWallet } from './hooks/useWallet';
+import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003/';
 
 export default function WalletPage() {
-  const [awards, setAwards] = useState<any[]>([]);
+  const [awards, setAwards] = useState<Award[] | null>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { uid, jwt } = useAuth();
@@ -42,8 +43,6 @@ export default function WalletPage() {
       } else {
         throw new Error(res.error || 'Failed to load wallet');
       }
-      if (createRes.success) setWallet(createRes.data);
-      else throw new Error('Failed to load wallet');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
@@ -52,10 +51,12 @@ export default function WalletPage() {
 
   const loadAwards = async () => {
     try {
-      const res = await fetchWithAuth<AwardsResponse[]>(
-        `${API_URL}/award/available/${uid}`
-      );
-      setAwards(res);
+      const res = await walletApi.getAvailableAwards(uid);
+
+      if(res.success){
+        setAwards(res.data);
+      }
+
     } catch (err) {
       console.error('Failed to load awards:', err);
     }
@@ -75,13 +76,13 @@ export default function WalletPage() {
 
   const handleAward = async (eventId: string) => {
     try {
-      const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/award`, {
-        method: 'POST',
-        body: JSON.stringify({ eventId }),
-      });
-      if (res.ok) await loadWallet();
+      const res = await walletApi.claimAward(uid,eventId);
+      if(res.success){
+        await loadWallet();
+        toast.success("Successfully claim award");
+      }
     } catch {
-      setError('Failed to claim award');
+      toast.error("Occurred an error to claim award")
     }
   };
 
@@ -139,7 +140,7 @@ export default function WalletPage() {
                 <Gift className="w-5 h-5 text-cyan-400" />
                 <h3 className="font-bold text-lg">Rewards</h3>
               </div>
-              <AwardList awards={awards} onClaim={handleAward} />
+              <AwardList awards={awards!} onClaim={handleAward} />
             </div>
 
             <div className="lg:col-span-3 bg-slate-800 rounded-3xl p-6 shadow-xl">
