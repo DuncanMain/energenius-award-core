@@ -24,9 +24,7 @@ export function useWallet(uid: string | null) {
       const data = await fetchWithAuth<Wallet>(`${API_URL}/wallet/${uid}`);
 
       data.balanceWei = Number(convertToETH(data.balanceWei));
-
       setWallet(data);
-
       console.log(data.balanceWei);
       if (prevBalance.current && data.balanceWei > prevBalance.current) {
         const diff = data.balanceWei - prevBalance.current;
@@ -78,5 +76,5 @@ export function useWallet(uid: string | null) {
     }
   };
 
-  return { wallet, loading, error, reload: loadWallet, spend };
+  return { wallet, loading, error, reload: loadWallet, spend,setWallet };
 }

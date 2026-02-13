@@ -1,74 +1,87 @@
-"use client";
+'use client';
+import { useState, useEffect } from 'react';
+import { Wallet, History, RefreshCw, AlertCircle, Gift } from 'lucide-react';
+import WalletBalance from './components/WalletBalance';
+import AwardList from './components/AwardList';
+import TransactionList from './components/TransactionList';
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { useAuth } from '../hooks/useAuth';
+import { convertToETH } from '@/utils/convert';
+import { walletApi } from '../api/walletApi';
+import { useWallet } from './hooks/useWallet';
 
-import { useState, useEffect } from "react";
-import { Wallet, History, RefreshCw, AlertCircle, Gift } from "lucide-react";
-import { parseJwt } from "@/utils/parseJwt";
-import WalletBalance from "./components/WalletBalance";
-import AwardList from "./components/AwardList";
-import TransactionList from "./components/TransactionList";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { useWallet } from "./hooks/useWallet";
-import toast from "react-hot-toast";
-import { authStorage } from "@/utils/authStorage";
-import { useAuth } from "../hooks/useAuth";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-
-export interface AwardsResponse {
-  id: number;
-  title: string;
-  encAmount: number;
-  maxCount: number;
-  awardedCount: number;
-  remaining: number;
-  isAvailable: boolean;
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003/';
 
 export default function WalletPage() {
-  const [awards, setAwards] = useState<AwardsResponse[]>([]);
+  const [awards, setAwards] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-
+  const [loading, setLoading] = useState(false);
   const { uid, jwt } = useAuth();
-  const { wallet, loading, reload, spend } = useWallet(uid!);
+  const { wallet, reload, spend, setWallet } = useWallet(uid!);
 
   useEffect(() => {
     if (!uid) return;
     loadAwards();
-  }, [uid]);
+  }, [uid, jwt]);
+
+  const loadWallet = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await walletApi.getWallet(uid);
+      if (!res.success && res.error?.includes('not found')) {
+        const address = `0x${Math.random().toString(16).substr(2, 40)}`;
+        const createRes = await walletApi.createWallet(uid!, address);
+        if (createRes.success) {
+          setWallet(createRes.data);
+        }
+      }
+      if (res.success) {
+        res.data.balanceWei = convertToETH(res.data.balanceWei);
+        setWallet(res.data);
+      } else {
+        throw new Error(res.error || 'Failed to load wallet');
+      }
+      if (createRes.success) setWallet(createRes.data);
+      else throw new Error('Failed to load wallet');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    }
+    setLoading(false);
+  };
 
   const loadAwards = async () => {
     try {
       const res = await fetchWithAuth<AwardsResponse[]>(
-        `${API_URL}/award/available/${uid}`,
+        `${API_URL}/award/available/${uid}`
       );
       setAwards(res);
     } catch (err) {
-      console.error("Failed to load awards:", err);
+      console.error('Failed to load awards:', err);
     }
   };
 
   const handleCredit = async (amount: number) => {
     try {
       const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/credit`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({ amount, description: `Added $${amount}` }),
       });
-
-      if (res.ok) reload(); 
-    } catch {
-      setError("Failed to add funds");
+      if (res.ok) await loadWallet();
+    } catch (err) {
+      setError('Failed to add funds');
     }
   };
 
   const handleAward = async (eventId: string) => {
     try {
-      const res = await fetchWithAuth<any>(`${API_URL}/award/event`, {
-        method: "POST",
-        body: JSON.stringify({ uid, eventId }),
+      const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/award`, {
+        method: 'POST',
+        body: JSON.stringify({ eventId }),
       });
-      reload();
-    } catch (err: any) {
-      toast.error(err.message.message || "Failed to claim award");
+      if (res.ok) await loadWallet();
+    } catch {
+      setError('Failed to claim award');
     }
   };
 
@@ -88,12 +101,12 @@ export default function WalletPage() {
 
           <button
             onClick={() => {
-              reload();
+              loadWallet();
               loadAwards();
             }}
             className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>

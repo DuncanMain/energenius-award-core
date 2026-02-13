@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import { RefreshCw } from "lucide-react";
 import React, { useState } from "react";
 import { AwardsResponse } from "../WalletPageContent";
@@ -35,3 +35,4 @@ export default function AwardItem({ award, onClaim }: AwardItemProps) {
     </>
   );
 }
+

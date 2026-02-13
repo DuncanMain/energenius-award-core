@@ -1,15 +1,19 @@
 'use client';
 
-import { useEffect, ReactNode, useState } from "react";
-import { useRouter } from "next/navigation";
-import { parseJwt } from "@/utils/parseJwt";
-import { authStorage } from "./utils/authStorage";
+import { useEffect, ReactNode, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { parseJwt } from '@/utils/parseJwt';
+import { authStorage } from './utils/authStorage';
 
-interface ProtectedRouteProps {
-  children: ReactNode;
+interface PublicRouteProps {
+  children: React.ReactNode;
+  redirectIfLoggedIn?: string;
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+export default function ProtectedRoute({
+  children,
+  redirectIfLoggedIn = '/wallet',
+}: PublicRouteProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
@@ -17,25 +21,27 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     const token = authStorage.getToken();
 
     if (!token) {
-      router.replace("/login"); // redirect ako nije token
+      router.replace('/login');
       return;
     }
 
     try {
       const payload = parseJwt(token);
 
-      // opcionalno: provera isteka tokena
       const exp = payload.exp;
-      if (exp && Date.now() >= exp * 1000) {
-        authStorage.clearAuth();
-        router.replace("/login");
+      console.log('Dosli da ispitamo');
+      if (!exp || Date.now() < exp * 1000) {
+        console.log('User is authenticated and token is valid');
+        router.replace(redirectIfLoggedIn);
         return;
+      } else {
+        authStorage.clearAuth();
       }
-
-      setLoading(false); // korisnik validan
     } catch (err) {
       authStorage.clearAuth();
-      router.replace("/login");
+      router.replace('/login');
+    } finally {
+      setLoading(false);
     }
   }, []);
 

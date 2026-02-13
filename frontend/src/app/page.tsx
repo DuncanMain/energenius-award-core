@@ -1,15 +1,15 @@
-// app/page.tsx
-'use client';
+"use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { parseJwt } from "@/utils/parseJwt";
+import { authStorage } from "@/utils/authStorage";
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem("jwt");
+    const token = authStorage.getToken();
 
     if (token) {
       const payload = parseJwt(token);
@@ -22,5 +22,6 @@ export default function Home() {
     router.push("/login");
   }, [router]);
 
-  return null; // ili loader dok redirect traje
+  return null; 
+
 }
