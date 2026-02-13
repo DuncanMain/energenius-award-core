@@ -19,18 +19,21 @@ export class AwardController {
     description: 'AwardCoreError / Validation error.',
   })
   @Post('event')
-  @ApiResponse({ status: 400, description: 'AwardCoreError / Validation error.' })
+  @ApiResponse({
+    status: 400,
+    description: 'AwardCoreError / Validation error.',
+  })
   @HttpCode(201)
-    @ApiResponse({ 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: 'Award granted successfully.',
     schema: {
       properties: {
         txHash: { type: 'string' },
         awardedAmount: { type: 'string' },
         newBalance: { type: 'string' },
-      }
-    }
+      },
+    },
   })
   async awardEvent(
     @Body()

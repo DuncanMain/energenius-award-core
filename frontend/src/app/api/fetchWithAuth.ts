@@ -1,3 +1,4 @@
+//This we don't use more
 export async function fetchWithAuth<T = any>(
   url: string,
   options: RequestInit = {}

@@ -1,24 +1,10 @@
+import { Award, SpendResponse, Wallet } from '@/models';
 import { ApiResponse } from './apiResponse';
 import { BaseApi } from './baseApi';
 import { authFetch } from './fetchClient';
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
-
-interface Wallet {
-  balanceWei: string;
-  history: any[];
-}
-export interface Award {
-  id: string;
-  name: string;
-  description: string;
-}
-export interface SpendResponse {
-  txHash: string;
-  address: string;
-  newBalanceWei: string;
-}
 
 class WalletApi extends BaseApi {
   async getWallet(uid: string): Promise<ApiResponse<Wallet>> {
@@ -59,7 +45,11 @@ class WalletApi extends BaseApi {
     );
   }
 
-  async spend(uid: string, amount: number,label: string): Promise<ApiResponse<SpendResponse>> {
+  async spend(
+    uid: string,
+    amount: number,
+    label: string
+  ): Promise<ApiResponse<SpendResponse>> {
     return this.handleRequest(() =>
       authFetch(`${API_BASE_URL}/wallet/spend`, {
         method: 'POST',

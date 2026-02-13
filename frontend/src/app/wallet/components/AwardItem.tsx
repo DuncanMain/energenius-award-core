@@ -1,7 +1,7 @@
 'use client';
+import { AwardsResponse } from "@/models";
 import { RefreshCw } from "lucide-react";
 import React, { useState } from "react";
-import { AwardsResponse } from "../WalletPageContent";
 
 interface AwardItemProps {
   award: AwardsResponse;

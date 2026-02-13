@@ -1,10 +1,10 @@
 'use client';
-import React from "react";
-import AwardItem from "./AwardItem";
-import { AwardsResponse } from "../WalletPageContent";
+import React from 'react';
+import AwardItem from './AwardItem';
+import { AwardsResponse } from '@/models';
 
 interface AwardListProps {
-  awards: AwardsResponse[];    
+  awards: AwardsResponse[] | null;
   onClaim: (eventId: string) => void;
 }
 

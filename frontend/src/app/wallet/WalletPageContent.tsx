@@ -6,10 +6,10 @@ import AwardList from './components/AwardList';
 import TransactionList from './components/TransactionList';
 import { useAuth } from '../hooks/useAuth';
 import { convertToETH } from '@/utils/convert';
-import { Award, walletApi } from '../api/walletApi';
+import { walletApi } from '../api/walletApi';
 import { useWallet } from './hooks/useWallet';
 import toast from 'react-hot-toast';
-
+import { Award } from '@/models';
 
 export default function WalletPage() {
   const [awards, setAwards] = useState<Award[] | null>([]);
@@ -51,39 +51,29 @@ export default function WalletPage() {
     try {
       const res = await walletApi.getAvailableAwards(uid);
 
-      if(res.success){
+      if (res.success) {
         setAwards(res.data);
       }
-
     } catch (err) {
       console.error('Failed to load awards:', err);
     }
   };
 
   const handleCredit = async (amount: number) => {
-    // try {
-    //   const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/credit`, {
-    //     method: 'POST',
-    //     body: JSON.stringify({ amount, description: `Added $${amount}` }),
-    //   });
-    //   if (res.ok) await loadWallet();
-    // } catch (err) {
-    //   setError('Failed to add funds');
-    // }
+    console.log(amount);
   };
 
   const handleAward = async (eventId: string) => {
     try {
-      const res = await walletApi.claimAward(uid,eventId);
-      if(res.success){
+      const res = await walletApi.claimAward(uid, eventId);
+      if (res.success) {
         await loadWallet();
-        toast.success("Successfully claim award");
-      }
-      else{
+        toast.success('Successfully claim award');
+      } else {
         toast.error(res.error);
       }
     } catch {
-      toast.error("Occurred an error to claim award")
+      toast.error('Occurred an error to claim award');
     }
   };
 
@@ -141,7 +131,7 @@ export default function WalletPage() {
                 <Gift className="w-5 h-5 text-cyan-400" />
                 <h3 className="font-bold text-lg">Rewards</h3>
               </div>
-              <AwardList awards={awards!} onClaim={handleAward} />
+              <AwardList awards={awards} onClaim={handleAward} />
             </div>
 
             <div className="lg:col-span-3 bg-slate-800 rounded-3xl p-6 shadow-xl">

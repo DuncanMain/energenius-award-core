@@ -1,22 +1,32 @@
 'use client';
 import { formatBalance } from '@/utils/formatCurrency';
-import { TrendingUp } from 'lucide-react';
+import { RefreshCw, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 interface WalletBalanceProps {
   balance: number | null;
   onCredit: (amount: number) => void;
-  spend: (amount: number, label?: string, onSuccess?: (data: any) => void) => Promise<void>;
+  spend: (
+    amount: number,
+    label?: string,
+    onSuccess?: (data: any) => void
+  ) => Promise<void>;
 }
 
 export default function WalletBalance({
   balance,
   onCredit,
-  spend
+  spend,
 }: WalletBalanceProps) {
+  const [loading, setLoading] = useState(false);
+
   const handleSpend = () => {
-    spend(50, "Coffee", ({ txHash, amount, label }) => {
+    setLoading(true);
+    spend(5, 'EV charging', ({ txHash, amount, label }) => {
       console.log(`Tx confirmed: ${txHash}, spent $${amount} for ${label}`);
-      // ovde može toast ili modal
+      toast.success(`Spent $${amount} for ${label}`);
+      setLoading(false);
     });
   };
 
@@ -30,28 +40,14 @@ export default function WalletBalance({
             onClick={handleSpend}
             className="mt-2 bg-cyan-500 px-4 py-2 rounded"
           >
-            Spend $50
+            {loading && <RefreshCw className={`w-4 h-4 animate-spin`} />}
+            Spend $5
           </button>
         </div>
         <div className="bg-white/20 p-3 rounded-xl">
           <TrendingUp className="w-6 h-6" />
         </div>
       </div>
-      {/* <div className="grid grid-cols-2 gap-3">
-        <button
-          onClick={() => onCredit(100)}
-          className="bg-white text-blue-600 px-6 py-3 rounded-xl font-semibold"
-        >
-          Add $100
-        </button>
-        <button
-          onClick={() => onCredit(50)}
-          className="bg-white text-blue-600 px-6 py-3 rounded-xl font-semibold"
-        >
-          Add $50
-        </button>
-      </div> */}
     </div>
   );
 }
-

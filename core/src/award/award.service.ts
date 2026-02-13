@@ -174,7 +174,7 @@ export class AwardService {
           remaining: null,
           isAvailable: true,
         };
-      } 
+      }
 
       const remaining = rule.maxCount - awardedCount;
 
