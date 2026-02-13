@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { parseUnits } from 'ethers';
+import { formatUnits, parseUnits } from 'ethers';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChainService } from '../chain/chain.service';
 import { TxLogRepository } from './repositories/tx-log.repository';
@@ -24,24 +24,24 @@ export class AwardService {
   ) {}
 
   /**
-   * DAJE NAGRADU KORISNIKU
+   * GIVE AWARD TO USER
    *
-   * Business logika:
-   * 1. Validacija input-a
-   * 2. Provjera da li nagrada postoji
-   * 3. Provjera maxCount limita
-   * 4. Blockchain transakcija
-   * 5. Update baze podataka
+   * Business logic:
+   * 1. Input validation
+   * 2. Check if the award exists
+   * 3. Check maxCount limit
+   * 4. Blockchain transaction
+   * 5. Update database
    */
   async awardEvent(
     uid: string,
     eventId: AwardRuleId,
     opts?: { timestamp?: string; source?: string }
   ) {
-    // 1. VALIDACIJA
+    // 1. VALIDATION
     let eventTimestamp: Date | null = null;
 
-    // 2. PROVJERA DA LI NAGRADA POSTOJI
+    // 2. CHECK IF THE AWARD EXISTS
     const rule = await this.awardTableService.getAwardRuleById(eventId);
     if (!rule) {
       throw new AwardCoreError('UNKNOWN_ACTION', `Unknown eventId: ${eventId}`);
@@ -49,22 +49,21 @@ export class AwardService {
 
     const address = deriveAddress(uid);
     const amountWei = BigInt(parseUnits(rule.encAmount, 18).toString());
-    // const chainId = this.chainService.getChainId();
-    // 5. BLOCKCHAIN TRANSAKCIJA
+    // 5. BLOCKCHAIN TRANSACTION
     const txHash = await this.chainService.award(address, amountWei);
-    // 3. DATABASE TRANSACTION SA BUSINESS LOGIKOM
+    // 3. DATABASE TRANSACTION WITH BUSINESS LOGIC
     return await this.prisma.$transaction(async tx => {
-      // Osiguraj da wallet postoji, prvo kreiramo wallet
+      // Ensure the wallet exists, create if necessary
       await tx.userWallet.upsert({
         where: { uid },
         update: {},
         create: { uid, address },
       });
 
-      // Osiguraj da award counter postoji
+      // Ensure award counter exists
       await this.userAwardRepo.upsertInTransaction(uid, eventId, tx);
 
-      // Provjeri count (Prisma ima implicit lock u transakciji)
+      // Check count (Prisma provides implicit lock in transaction)
       const userAward = await this.userAwardRepo.findByUidAndEventIdWithLock(
         uid,
         eventId,
@@ -75,7 +74,7 @@ export class AwardService {
       const maxCount = Number(rule.maxCount);
       const unlimited = maxCount === 0;
 
-      // 4. PROVJERA MAXCOUNT LIMITA
+      // 4. CHECK MAXCOUNT LIMIT
       if (!unlimited && currentCount >= maxCount) {
         throw new AwardCoreError(
           'MAXCOUNT_EXCEEDED',
@@ -84,7 +83,7 @@ export class AwardService {
       }
       const chainId = Number(this.configService.get<string>('CHAIN_ID'));
 
-      // 6. UPDATE BAZE
+      // 6. UPDATE DATABASE
       await this.userAwardRepo.incrementCountInTransaction(uid, eventId, tx);
 
       await this.txLogRepo.createInTransaction(
@@ -108,40 +107,36 @@ export class AwardService {
 
       return {
         txHash,
-        address,
-        newBalanceWei: newBalanceWei.toString(),
+        awardedAmount: rule.encAmount, // string/number from table
+        newBalance: formatUnits(newBalanceWei, 18), // "123.45" instead of wei
       };
     });
   }
 
   /**
-   * POTROŠI TOKENE
+   * SPEND TOKENS
    *
-   * Business logika:
-   * 1. Validacija input-a
-   * 2. Provjera balansa PRIJE blockchain-a
-   * 3. Blockchain spend transakcija
-   * 4. Update baze podataka
+   * Business logic:
+   * 1. Input validation
+   * 2. Check balance BEFORE blockchain transaction
+   * 3. Blockchain spend transaction
+   * 4. Update database
    */
   async spend(uid: AwardRuleId, amountEnc: bigint, label?: string) {
     const address = deriveAddress(uid);
     const chainId = this.chainService.getChainId();
 
-    // Osiguraj da wallet postoji
     await this.userWalletRepo.upsert(uid, address);
 
-    // 2. KRITIČNO: Provjeri balans PRIJE blockchain-a
     const bal = await this.chainService.balanceOf(address);
     if (bal < amountEnc) {
       throw new AwardCoreError('INSUFFICIENT_BALANCE', 'insufficient balance');
     }
 
-    // 3. DATABASE TRANSACTION
     return await this.prisma.$transaction(async tx => {
-      // Blockchain spend transakcija
+      // Blockchain spend transaction
       const txHash = await this.chainService.spend(address, amountEnc);
 
-      // Snimi tx_log
       await this.txLogRepo.createInTransaction(
         {
           uid,
@@ -167,20 +162,20 @@ export class AwardService {
   }
 
   /**
-   * DOSTUPNE NAGRADE ZA KORISNIKA
+   * GET AVAILABLE AWARDS FOR USER
    *
-   * Business logika:
-   * 1. Izvuci sve user awards iz baze
-   * 2. Uporedi sa award-table.json
-   * 3. Izračunaj remaining i isAvailable
+   * Business logic:
+   * 1. Fetch all user awards from database
+   * 2. Compare with award-table.json
+   * 3. Calculate remaining and isAvailable
    */
   async getAvailableAwardsForUser(uid: string) {
     const address = deriveAddress(uid);
 
-    // Osiguraj da wallet postoji
+    // Ensure the wallet exists
     await this.userWalletRepo.upsert(uid, address);
 
-    // Izvuci count-ove iz baze (Repository sloj)
+    // Fetch counts from database (Repository layer)
     const userAwards = await this.userAwardRepo.findAllByUid(uid);
 
     const counts = new Map<string, number>();
@@ -190,7 +185,7 @@ export class AwardService {
 
     const rules = await this.awardTableService.listAwardRules();
 
-    // Business logika za izračunavanje dostupnosti
+    // Business logic for calculating availability
     return rules.map(rule => {
       const awardedCount = counts.get(rule.id) ?? 0;
 
@@ -204,7 +199,7 @@ export class AwardService {
           remaining: null,
           isAvailable: true,
         };
-      }
+      } 
 
       const remaining = rule.maxCount - awardedCount;
 

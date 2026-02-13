@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, BadRequestException, HttpCode } from '@nestjs/common';
 import { AwardService} from './award.service';
 import { EventDto } from './dto/event.dto';
 import { AwardCoreError } from '@/utils/errors/award-core.error';
@@ -14,9 +14,20 @@ export class AwardController {
 
   @ApiOperation({ summary: 'Award tokens for a specific event to a user' })
   @ApiBody({ type: EventDto })
-  @ApiResponse({ status: 201, description: 'Award granted successfully.' })
-  @ApiResponse({ status: 400, description: 'AwardCoreError / Validation error.' })
   @Post('event')
+  @ApiResponse({ status: 400, description: 'AwardCoreError / Validation error.' })
+  @HttpCode(201)
+    @ApiResponse({ 
+    status: 201, 
+    description: 'Award granted successfully.',
+    schema: {
+      properties: {
+        txHash: { type: 'string' },
+        awardedAmount: { type: 'string' },
+        newBalance: { type: 'string' },
+      }
+    }
+  })
   async awardEvent(
     @Body()
     body: EventDto
@@ -28,7 +39,10 @@ export class AwardController {
       });
     } catch (e) {
       if (e instanceof AwardCoreError) {
-        return { error: e.code, message: e.message };
+        throw new BadRequestException({
+          error: e.code,
+          message: e.message,
+        });      
       }
       throw e;
     }
