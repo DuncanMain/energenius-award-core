@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, HttpCode } from '@nestjs/common';
 import { AwardService } from './award.service';
 import { EventDto } from './dto/event.dto';
 import { AwardRule, AwardTableService } from './award-table.service';
@@ -19,6 +19,19 @@ export class AwardController {
     description: 'AwardCoreError / Validation error.',
   })
   @Post('event')
+  @ApiResponse({ status: 400, description: 'AwardCoreError / Validation error.' })
+  @HttpCode(201)
+    @ApiResponse({ 
+    status: 201, 
+    description: 'Award granted successfully.',
+    schema: {
+      properties: {
+        txHash: { type: 'string' },
+        awardedAmount: { type: 'string' },
+        newBalance: { type: 'string' },
+      }
+    }
+  })
   async awardEvent(
     @Body()
     body: EventDto

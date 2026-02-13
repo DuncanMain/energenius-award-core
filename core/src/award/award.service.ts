@@ -49,10 +49,10 @@ export class AwardService {
         create: { uid, address },
       });
 
-      // Osiguraj da award counter postoji
+      // Ensure award counter exists
       await this.userAwardRepo.upsertInTransaction(uid, eventId, tx);
 
-      // Provjeri count (Prisma ima implicit lock u transakciji)
+      // Check count (Prisma provides implicit lock in transaction)
       const userAward = await this.userAwardRepo.findByUidAndEventIdWithLock(
         uid,
         eventId,
@@ -63,7 +63,7 @@ export class AwardService {
       const maxCount = Number(rule.maxCount);
       const unlimited = maxCount === 0;
 
-      // 4. PROVJERA MAXCOUNT LIMITA
+      // 4. CHECK MAXCOUNT LIMIT
       if (!unlimited && currentCount >= maxCount) {
         throw new ForbiddenException('maxCount reached for this award');
       }
@@ -73,7 +73,7 @@ export class AwardService {
 
       const chainId = Number(this.configService.get<string>('CHAIN_ID'));
 
-      // 6. UPDATE BAZE
+      // 6. UPDATE DATABASE
       await this.userAwardRepo.incrementCountInTransaction(uid, eventId, tx);
 
       await this.txLogRepo.createInTransaction(
@@ -174,7 +174,7 @@ export class AwardService {
           remaining: null,
           isAvailable: true,
         };
-      }
+      } 
 
       const remaining = rule.maxCount - awardedCount;
 
