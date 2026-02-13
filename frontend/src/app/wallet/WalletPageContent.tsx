@@ -1,13 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Wallet, History, RefreshCw, AlertCircle, Gift } from 'lucide-react';
-import WalletBalance from './components/WalletBalance';
-import AwardList from './components/AwardList';
-import TransactionList from './components/TransactionList';
-import { useAuth } from '../hooks/useAuth';
+import WalletBalance from '../../components/WalletBalance';
+import AwardList from '../../components/AwardList';
+import TransactionList from '../../components/TransactionList';
+import { useAuth } from '../../hooks/useAuth';
 import { convertToETH } from '@/utils/convert';
-import { walletApi } from '../api/walletApi';
-import { useWallet } from './hooks/useWallet';
+import { walletApi } from '../../api/walletApi';
+import { useWallet } from '../../hooks/useWallet';
 import toast from 'react-hot-toast';
 import { Award } from '@/models';
 

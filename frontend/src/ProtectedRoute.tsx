@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { parseJwt } from '@/utils/parseJwt';
 import { authStorage } from './utils/authStorage';
+import { AuthState } from './enums/AuthState.enum';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,13 +16,13 @@ export default function ProtectedRoute({
   redirectIfLoggedIn = '/wallet',
 }: ProtectedRouteProps) {
   const router = useRouter();
-  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
+  const [authState, setAuthState] = useState<AuthState>(AuthState.LOADING);
   useEffect(() => {
     const checkAuth = () => {
       const token = authStorage.getToken();
 
       if (!token) {
-        setAuthState('unauthenticated');
+        setAuthState(AuthState.UNAUTHENTICATED);
         return;
       }
 
@@ -30,14 +31,14 @@ export default function ProtectedRoute({
         const exp = payload.exp;
 
         if (exp && Date.now() < exp * 1000) {
-          setAuthState('authenticated');
+          setAuthState(AuthState.AUTHENTICATED);
         } else {
           authStorage.clearAuth();
-          setAuthState('unauthenticated');
+          setAuthState(AuthState.UNAUTHENTICATED);
         }
       } catch (err) {
         authStorage.clearAuth();
-        setAuthState('unauthenticated');
+        setAuthState(AuthState.UNAUTHENTICATED);
       }
     };
 
@@ -45,9 +46,9 @@ export default function ProtectedRoute({
   }, []);
 
   useEffect(() => {
-    if (authState === 'authenticated') {
+    if (authState === AuthState.AUTHENTICATED) {
       router.replace(redirectIfLoggedIn);
-    } else if (authState === 'unauthenticated') {
+    } else if (authState === AuthState.UNAUTHENTICATED) {
       router.replace('/login');
     }
   }, [authState, router, redirectIfLoggedIn]);

@@ -1,16 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { convertToETH } from '@/utils/convert';
-import { walletApi } from '@/app/api/walletApi';
-import { fetchWithAuth } from '@/app/api/fetchWithAuth';
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-
-interface Wallet {
-  uid: string;
-  address: string;
-  balanceWei: number;
-  history: any[];
-}
+import { walletApi } from '@/api/walletApi';
 
 export function useWallet(uid: string | null) {
   const [wallet, setWallet] = useState<any>(null);
