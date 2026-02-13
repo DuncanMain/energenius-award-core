@@ -4,7 +4,7 @@ import { Wallet, History, RefreshCw, AlertCircle, Gift } from 'lucide-react';
 import WalletBalance from './components/WalletBalance';
 import AwardList from './components/AwardList';
 import TransactionList from './components/TransactionList';
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { fetchWithAuth } from '@/app/api/fetchWithAuth';
 import { useAuth } from '../hooks/useAuth';
 import { convertToETH } from '@/utils/convert';
 import { walletApi } from '../api/walletApi';
@@ -42,8 +42,6 @@ export default function WalletPage() {
       } else {
         throw new Error(res.error || 'Failed to load wallet');
       }
-       if (createRes.success) setWallet(createRes.data);
-       else throw new Error('Failed to load wallet');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }

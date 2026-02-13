@@ -17,8 +17,8 @@ export default function TransactionList({
 
   return (
     <div className="space-y-2">
-      {transactions.map(tx => (
-        <TransactionItem key={tx.txId} tx={tx} />
+      {transactions.map((tx,index) => (
+        <TransactionItem key={index} tx={tx} />
       ))}
     </div>
   );

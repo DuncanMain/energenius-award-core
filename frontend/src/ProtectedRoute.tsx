@@ -7,7 +7,7 @@ import { authStorage } from './utils/authStorage';
 
 interface PublicRouteProps {
   children: React.ReactNode;
-  redirectIfLoggedIn?: string; // npr. "/" da ga šalje na home ako je logovan
+  redirectIfLoggedIn?: string;
 }
 
 export default function ProtectedRoute({
@@ -29,7 +29,6 @@ export default function ProtectedRoute({
       const payload = parseJwt(token);
 
       const exp = payload.exp;
-      console.log('Dosli da ispitamo');
       if (!exp || Date.now() < exp * 1000) {
         console.log('User is authenticated and token is valid');
         router.replace(redirectIfLoggedIn);
