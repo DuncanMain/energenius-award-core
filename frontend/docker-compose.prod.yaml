@@ -1,0 +1,19 @@
+services:
+  app:
+    container_name: award-system-frontend-app
+    image: ghcr.io/zentrixlab/energenius-award-system-frontend:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY}
+    networks:
+      - default
+      - shared-proxy
+
+networks:
+  shared-proxy:
+    external: true
