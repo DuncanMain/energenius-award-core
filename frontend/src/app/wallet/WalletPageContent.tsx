@@ -4,12 +4,9 @@ import { Wallet, History, RefreshCw, AlertCircle, Gift } from 'lucide-react';
 import WalletBalance from './components/WalletBalance';
 import AwardList from './components/AwardList';
 import TransactionList from './components/TransactionList';
-import { fetchWithAuth } from '@/app/api/fetchWithAuth';
 import { useAuth } from '../hooks/useAuth';
 import { convertToETH } from '@/utils/convert';
 import { walletApi } from '../api/walletApi';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003/';
 
 export default function WalletPage() {
   const [wallet, setWallet] = useState<any>(null);
@@ -52,32 +49,38 @@ export default function WalletPage() {
 
   const loadAwards = async () => {
     try {
-      const res = await fetchWithAuth(`${API_URL}/award`);
-      if (res.ok) setAwards(await res.json());
+      const res = await walletApi.getAwards();
+      if (res.success && res.data) {
+        setAwards(res.data);
+      }
     } catch (err) {
       console.error('Error loading awards:', err);
     }
   };
 
   const handleCredit = async (amount: number) => {
+    if (!uid) return;
     try {
-      const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/credit`, {
-        method: 'POST',
-        body: JSON.stringify({ amount, description: `Added $${amount}` }),
-      });
-      if (res.ok) await loadWallet();
+      const res = await walletApi.creditWallet(uid, amount, `Added $${amount}`);
+      if (res.success) {
+        await loadWallet();
+      } else {
+        throw new Error(res.error || 'Failed to add funds');
+      }
     } catch (err) {
       setError('Failed to add funds');
     }
   };
 
   const handleAward = async (eventId: string) => {
+    if (!uid) return;
     try {
-      const res = await fetchWithAuth(`${API_URL}/wallets/${uid}/award`, {
-        method: 'POST',
-        body: JSON.stringify({ eventId }),
-      });
-      if (res.ok) await loadWallet();
+      const res = await walletApi.claimAward(uid, eventId);
+      if (res.success) {
+        await loadWallet();
+      } else {
+        throw new Error(res.error || 'Failed to claim award');
+      }
     } catch {
       setError('Failed to claim award');
     }
