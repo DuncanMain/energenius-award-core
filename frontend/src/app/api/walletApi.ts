@@ -3,7 +3,7 @@ import { BaseApi } from './baseApi';
 import { authFetch } from './fetchClient';
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3004';
+  process.env.NEXT_PUBLIC_API_URL || '';
 
 interface Wallet {
   balanceWei: string;
@@ -38,7 +38,7 @@ class WalletApi extends BaseApi {
     description: string
   ): Promise<ApiResponse<Wallet>> {
     return this.handleRequest(() =>
-      authFetch(`/wallets/${uid}/credit`, {
+      authFetch(`${API_BASE_URL}/wallets/${uid}/credit`, {
         method: 'POST',
         body: JSON.stringify({ amount, description }),
       })
@@ -47,7 +47,7 @@ class WalletApi extends BaseApi {
 
   async claimAward(uid: string, eventId: string): Promise<ApiResponse<Wallet>> {
     return this.handleRequest(() =>
-      authFetch(`/wallets/${uid}/award`, {
+      authFetch(`${API_BASE_URL}/wallets/${uid}/award`, {
         method: 'POST',
         body: JSON.stringify({ eventId }),
       })
@@ -55,7 +55,7 @@ class WalletApi extends BaseApi {
   }
 
   async getAwards(): Promise<ApiResponse<Award[]>> {
-    return this.handleRequest(() => authFetch(`/award`));
+    return this.handleRequest(() => authFetch(`${API_BASE_URL}/award`));
   }
 }
 
