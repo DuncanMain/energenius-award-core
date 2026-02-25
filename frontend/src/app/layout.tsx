@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ENERGENIUS Sandbox Wallet',
-  description: 'Your crypto wallet dashboard',
+  title: 'ENERGENIUS Award System',
+  description: 'Award dashboard',
 };
 
 export default function RootLayout({

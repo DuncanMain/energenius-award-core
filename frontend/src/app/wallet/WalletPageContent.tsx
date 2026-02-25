@@ -95,8 +95,8 @@ export default function WalletPage() {
               <Wallet className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">ENERGENIUS</h1>
-              <p className="text-slate-300">Sandbox Wallet</p>
+              <h1 className="text-3xl font-bold">AWARD SYSTEM</h1>
+              <p className="text-slate-300">Energenius</p>
             </div>
           </div>
           <button
