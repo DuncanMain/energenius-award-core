@@ -24,7 +24,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('v1/api-docs', app, document);
 
   // Remove cors when going live
   app.enableCors();
@@ -36,6 +36,7 @@ async function bootstrap() {
     })
   );
 
-  await app.listen(3004);
+  const port = Number(configService.get('PORT') ?? 3001);
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();
