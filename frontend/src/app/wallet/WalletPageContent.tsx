@@ -36,7 +36,9 @@ export default function WalletPage() {
         if (createRes.success) {
           setWallet(createRes.data);
         }
-      }if (res.success) {
+      }
+
+      if (res.success && res.data) {
         res.data.balanceWei = convertToETH(res.data.balanceWei);
         setWallet(res.data);
       } else {

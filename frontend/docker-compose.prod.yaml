@@ -9,6 +9,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_NEXUS_API_URL: ${NEXT_PUBLIC_NEXUS_API_URL}
       NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY}
     networks:
       - default

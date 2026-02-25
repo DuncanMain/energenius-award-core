@@ -4,7 +4,8 @@ import { authStorage } from '@/utils/authStorage';
 import { BaseApi } from './baseApi';
 
 export const API_BASE_URL =
-  process.env.NEXUS_API_URL || 'http://localhost:3003';
+  process.env.NEXT_PUBLIC_NEXUS_API_URL ||
+  'https://energenius-nexus.zentrix.io';
 
 interface LoginRequest {
   email: string;
