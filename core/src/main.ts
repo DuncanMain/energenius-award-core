@@ -18,8 +18,11 @@ async function bootstrap() {
   // Set the guard globally using the retrieved instance
   app.useGlobalGuards(introspectionGuard);
 
+  // Keep API routes under /v1 so they match nginx proxy paths.
+  app.setGlobalPrefix('v1');
+
   const config = new DocumentBuilder()
-    .setTitle('Change app name')
+    .setTitle('Energenius Award System API')
     .setVersion(appVersion || '1.0.0')
     .build();
 
