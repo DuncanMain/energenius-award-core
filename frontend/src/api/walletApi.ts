@@ -1,21 +1,12 @@
 import { ApiResponse } from './apiResponse';
 import { BaseApi } from './baseApi';
 import { authFetch } from './fetchClient';
+import { Wallet } from '@/models/wallet';
 
-export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || '/v1').replace(
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || '/v1').replace(
   /\/+$/,
   ''
 );
-
-interface Wallet {
-  balanceWei: string;
-  history: any[];
-}
-interface Award {
-  id: string;
-  name: string;
-  description: string;
-}
 
 class WalletApi extends BaseApi {
   async getWallet(uid: string): Promise<ApiResponse<Wallet>> {
@@ -47,18 +38,6 @@ class WalletApi extends BaseApi {
     );
   }
 
-  async claimAward(uid: string, eventId: string): Promise<ApiResponse<Wallet>> {
-    return this.handleRequest(() =>
-      authFetch(`${API_BASE_URL}/wallets/${uid}/award`, {
-        method: 'POST',
-        body: JSON.stringify({ eventId }),
-      })
-    );
-  }
-
-  async getAwards(): Promise<ApiResponse<Award[]>> {
-    return this.handleRequest(() => authFetch(`${API_BASE_URL}/award`));
-  }
 }
 
 export const walletApi = new WalletApi();

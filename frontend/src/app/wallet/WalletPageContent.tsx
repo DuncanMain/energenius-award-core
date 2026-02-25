@@ -4,9 +4,10 @@ import { Wallet, History, RefreshCw, AlertCircle, Gift } from 'lucide-react';
 import WalletBalance from './components/WalletBalance';
 import AwardList from './components/AwardList';
 import TransactionList from './components/TransactionList';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { convertToETH } from '@/utils/convert';
-import { walletApi } from '../api/walletApi';
+import { walletApi } from '@/api/walletApi';
+import { awardApi } from '@/api/awardApi';
 
 export default function WalletPage() {
   const [wallet, setWallet] = useState<any>(null);
@@ -49,7 +50,7 @@ export default function WalletPage() {
 
   const loadAwards = async () => {
     try {
-      const res = await walletApi.getAwards();
+      const res = await awardApi.getAwards();
       if (res.success && res.data) {
         setAwards(res.data);
       }
@@ -75,7 +76,7 @@ export default function WalletPage() {
   const handleAward = async (eventId: string) => {
     if (!uid) return;
     try {
-      const res = await walletApi.claimAward(uid, eventId);
+      const res = await awardApi.claimAward(uid, eventId);
       if (res.success) {
         await loadWallet();
       } else {
