@@ -1,7 +1,7 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: ./core
       dockerfile: Dockerfile
     image: energenius-wallet-backend
     depends_on:
@@ -14,6 +14,7 @@ services:
       DATABASE_USER: postgres
       DATABASE_PASSWORD: postgres
       DATABASE_NAME: energenius
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/postgres?schema=public
       API_KEY: zentrix-lab-energenius-wallet
     # No direct port exposure - nginx will proxy
 

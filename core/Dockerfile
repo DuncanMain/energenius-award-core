@@ -2,6 +2,8 @@
 FROM node:22.14.0-alpine AS builder
 
 WORKDIR /app
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
