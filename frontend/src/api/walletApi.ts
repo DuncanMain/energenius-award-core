@@ -1,7 +1,7 @@
+import { Award, SpendResponse, Wallet } from '@/models';
 import { ApiResponse } from './apiResponse';
 import { BaseApi } from './baseApi';
 import { authFetch } from './fetchClient';
-import { Wallet } from '@/models/wallet';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || '/v1').replace(
   /\/+$/,
@@ -38,6 +38,36 @@ class WalletApi extends BaseApi {
     );
   }
 
+  async claimAward(uid: string, eventId: string): Promise<ApiResponse<Wallet>> {
+    return this.handleRequest(() =>
+      authFetch(`${API_BASE_URL}/award/event`, {
+        method: 'POST',
+        body: JSON.stringify({ eventId, uid }),
+      })
+    );
+  }
+
+  async spend(
+    uid: string,
+    amount: number,
+    label: string
+  ): Promise<ApiResponse<SpendResponse>> {
+    return this.handleRequest(() =>
+      authFetch(`${API_BASE_URL}/wallet/spend`, {
+        method: 'POST',
+        body: JSON.stringify({ uid, amount, label }),
+      })
+    );
+  }
+
+  async getAwards(): Promise<ApiResponse<Award[]>> {
+    return this.handleRequest(() => authFetch(`/award`));
+  }
+  async getAvailableAwards(uid: string): Promise<ApiResponse<Award[]>> {
+    return this.handleRequest(() =>
+      authFetch(`${API_BASE_URL}/award/available/${uid}`)
+    );
+  }
 }
 
 export const walletApi = new WalletApi();

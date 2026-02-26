@@ -4,8 +4,7 @@ import { authFetch } from './fetchClient';
 import { Award } from '@/models/award';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || '/v1').replace(
-  /\/+$/,
-  ''
+  /\/+$/,''
 );
 
 class AwardApi extends BaseApi {

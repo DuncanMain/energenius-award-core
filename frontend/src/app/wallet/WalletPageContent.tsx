@@ -1,25 +1,25 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Wallet, History, RefreshCw, AlertCircle, Gift } from 'lucide-react';
-import WalletBalance from './components/WalletBalance';
-import AwardList from './components/AwardList';
-import TransactionList from './components/TransactionList';
-import { useAuth } from '@/hooks/useAuth';
+import WalletBalance from '../../components/WalletBalance';
+import AwardList from '../../components/AwardList';
+import TransactionList from '../../components/TransactionList';
+import { useAuth } from '../../hooks/useAuth';
 import { convertToETH } from '@/utils/convert';
-import { walletApi } from '@/api/walletApi';
-import { awardApi } from '@/api/awardApi';
+import { walletApi } from '../../api/walletApi';
+import { useWallet } from '../../hooks/useWallet';
+import toast from 'react-hot-toast';
+import { Award } from '@/models';
 
 export default function WalletPage() {
-  const [wallet, setWallet] = useState<any>(null);
-  const [awards, setAwards] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [awards, setAwards] = useState<Award[] | null>([]);
   const [error, setError] = useState<string | null>(null);
-
-  const { jwt, uid } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { uid, jwt } = useAuth();
+  const { wallet, spend, setWallet } = useWallet(uid!);
 
   useEffect(() => {
-    if (!uid || !jwt) return;
-    loadWallet();
+    if (!uid) return;
     loadAwards();
   }, [uid, jwt]);
 
@@ -35,7 +35,6 @@ export default function WalletPage() {
           setWallet(createRes.data);
         }
       }
-
       if (res.success && res.data) {
         res.data.balanceWei = convertToETH(res.data.balanceWei);
         setWallet(res.data);
@@ -50,12 +49,13 @@ export default function WalletPage() {
 
   const loadAwards = async () => {
     try {
-      const res = await awardApi.getAwards();
-      if (res.success && res.data) {
+      const res = await walletApi.getAvailableAwards(uid);
+
+      if (res.data && res.success) {
         setAwards(res.data);
       }
     } catch (err) {
-      console.error('Error loading awards:', err);
+      console.error('Failed to load awards:', err);
     }
   };
 
@@ -76,14 +76,15 @@ export default function WalletPage() {
   const handleAward = async (eventId: string) => {
     if (!uid) return;
     try {
-      const res = await awardApi.claimAward(uid, eventId);
+      const res = await walletApi.claimAward(uid, eventId);
       if (res.success) {
         await loadWallet();
+        toast.success('Successfully claim award');
       } else {
-        throw new Error(res.error || 'Failed to claim award');
+        throw Error(res.error || 'Failed to claim award');
       }
-    } catch {
-      setError('Failed to claim award');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Occurred an error to claim award');
     }
   };
 
@@ -100,6 +101,7 @@ export default function WalletPage() {
               <p className="text-slate-300">Energenius</p>
             </div>
           </div>
+
           <button
             onClick={() => {
               loadWallet();
@@ -131,6 +133,7 @@ export default function WalletPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <WalletBalance
               balance={wallet?.balanceWei || 0}
+              spend={spend}
               onCredit={handleCredit}
             />
 
@@ -145,7 +148,7 @@ export default function WalletPage() {
             <div className="lg:col-span-3 bg-slate-800 rounded-3xl p-6 shadow-xl">
               <div className="flex items-center gap-2 mb-4">
                 <History className="w-5 h-5 text-cyan-400" />
-                <h3 className="font-bold text-lg">Transactions</h3>
+                <h3 className="font-bold text-lg">Transactions (last 10)</h3>
               </div>
               <TransactionList transactions={wallet?.history || []} />
             </div>

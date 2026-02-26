@@ -1,5 +1,7 @@
+// app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';
+import ToastProvider from '@/components/ToastProvider';
 
 export const metadata: Metadata = {
   title: 'ENERGENIUS Award System',
@@ -13,7 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <ToastProvider />
+      </body>
     </html>
   );
 }
