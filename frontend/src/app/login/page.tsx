@@ -27,7 +27,7 @@ export default function LoginPage() {
       const accessToken = res?.data?.access_token;
       const payload = parseJwt(accessToken!);
 
-      authStorage.setAuth(accessToken!, payload.sub);
+      authStorage.setAuth(accessToken!, payload.sub, payload.username || payload.email);
       router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

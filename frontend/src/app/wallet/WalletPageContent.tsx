@@ -10,6 +10,8 @@ import { walletApi } from '../../api/walletApi';
 import { useWallet } from '../../hooks/useWallet';
 import toast from 'react-hot-toast';
 import { Award } from '@/models';
+import { userApi } from '@/api/userApi';
+import { authStorage } from '@/utils/authStorage';
 
 export default function WalletPage() {
   const [awards, setAwards] = useState<Award[] | null>([]);
@@ -84,17 +86,30 @@ export default function WalletPage() {
         throw Error(res.error || 'Failed to claim award');
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Occurred an error to claim award');
+      toast.error(
+        err instanceof Error ? err.message : 'Occurred an error to claim award'
+      );
     }
   };
 
+  const logout = async()=>{
+    try{
+
+      const username = authStorage.getUsername();
+      await userApi.logout({username : username || ""});
+      authStorage.clearAuth();
+    }
+    catch(err){
+      toast.error(err instanceof Error ? err.message : 'Failed to logout');
+    }
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center">
-              <Wallet className="w-6 h-6" />
+              <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center">
+                <Wallet className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">AWARD SYSTEM</h1>
@@ -111,6 +126,16 @@ export default function WalletPage() {
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
+          </button>
+
+          <button
+            onClick={() => {
+              logout();
+            }}
+            className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Logout
           </button>
         </div>
 
