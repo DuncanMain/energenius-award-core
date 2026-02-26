@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { convertToETH } from '@/utils/convert';
 import { walletApi } from '@/api/walletApi';
+import { authStorage } from '@/utils/authStorage';
 
 export function useWallet(uid: string | null) {
   const [wallet, setWallet] = useState<any>(null);
@@ -14,7 +15,6 @@ export function useWallet(uid: string | null) {
     setLoading(true);
     try {
       const res = await walletApi.getWallet(uid);
-
       if (res.success) {
         const data = res.data;
         data.balanceWei = Number(convertToETH(data.balanceWei));
@@ -25,6 +25,7 @@ export function useWallet(uid: string | null) {
         }
         prevBalance.current = data.balanceWei;
       } else {
+        authStorage.clearAuth();
         setError(res.error || 'Unknown error');
       }
     } catch (err: any) {

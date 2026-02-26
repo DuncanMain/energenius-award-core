@@ -5,7 +5,8 @@ import { BaseApi } from './baseApi';
 import { CurrentUserResponse, LoginRequest, LoginResponse } from '@/models';
 
 export const API_BASE_URL =
-  process.env.NEXUS_API_URL || 'http://localhost:3003';
+  process.env.NEXT_PUBLIC_NEXUS_API_URL ||
+  'https://energenius-nexus.zentrix.io';
 
 class UserApi extends BaseApi {
   async login(data: LoginRequest): Promise<ApiResponse<LoginResponse>> {

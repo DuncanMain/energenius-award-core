@@ -5,6 +5,8 @@ import { ValidationPipe } from '@nestjs/common';
 // import { AccessTokenGuard } from './auth/guards/accessToken.guard';
 import { AppModule } from './app.module';
 import { IntrospectionGuard } from './auth/guards/introspectToken.guard';
+import { AwardModule } from './award/award.module';
+import { WalletModule } from './wallet/wallet.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -18,13 +20,18 @@ async function bootstrap() {
   // Set the guard globally using the retrieved instance
   app.useGlobalGuards(introspectionGuard);
 
+  // Keep API routes under /v1 so they match nginx proxy paths.
+  app.setGlobalPrefix('v1');
+
   const config = new DocumentBuilder()
-    .setTitle('Change app name')
+    .setTitle('Energenius Award System API')
     .setVersion(appVersion || '1.0.0')
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  const document = SwaggerModule.createDocument(app, config, {
+    include: [AwardModule, WalletModule],
+  });
+  SwaggerModule.setup('v1/api-docs', app, document);
 
   // Remove cors when going live
   app.enableCors();
@@ -36,6 +43,7 @@ async function bootstrap() {
     })
   );
 
-  await app.listen(3004);
+  const port = Number(configService.get('PORT') ?? 3001);
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();

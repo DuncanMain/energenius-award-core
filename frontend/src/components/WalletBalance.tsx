@@ -21,13 +21,14 @@ export default function WalletBalance({
 }: WalletBalanceProps) {
   const [loading, setLoading] = useState(false);
 
-  const handleSpend = () => {
+  const handleSpend = async () => {
     setLoading(true);
-    spend(5, 'EV charging', ({ txHash, amount, label }) => {
+    await spend(5, 'EV charging', ({ txHash, amount, label }) => {
       console.log(`Tx confirmed: ${txHash}, spent $${amount} for ${label}`);
       toast.success(`Spent $${amount} for ${label}`);
       setLoading(false);
     });
+    setLoading(false);
   };
 
   return (
@@ -38,7 +39,7 @@ export default function WalletBalance({
           <h2 className="text-5xl font-bold">${formatBalance(balance)}</h2>
           <button
             onClick={handleSpend}
-            className="mt-2 bg-cyan-500 px-4 py-2 rounded"
+            className="mt-2 bg-cyan-500 px-4 py-2 rounded flex items-center gap-2"
           >
             {loading && <RefreshCw className={`w-4 h-4 animate-spin`} />}
             Spend $5

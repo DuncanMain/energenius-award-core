@@ -35,7 +35,7 @@ export default function WalletPage() {
           setWallet(createRes.data);
         }
       }
-      if (res.success) {
+      if (res.success && res.data) {
         res.data.balanceWei = convertToETH(res.data.balanceWei);
         setWallet(res.data);
       } else {
@@ -51,7 +51,7 @@ export default function WalletPage() {
     try {
       const res = await walletApi.getAvailableAwards(uid);
 
-      if (res.success) {
+      if (res.data && res.success) {
         setAwards(res.data);
       }
     } catch (err) {
@@ -60,20 +60,31 @@ export default function WalletPage() {
   };
 
   const handleCredit = async (amount: number) => {
-    console.log(amount);
+    if (!uid) return;
+    try {
+      const res = await walletApi.creditWallet(uid, amount, `Added $${amount}`);
+      if (res.success) {
+        await loadWallet();
+      } else {
+        throw new Error(res.error || 'Failed to add funds');
+      }
+    } catch (err) {
+      setError('Failed to add funds');
+    }
   };
 
   const handleAward = async (eventId: string) => {
+    if (!uid) return;
     try {
       const res = await walletApi.claimAward(uid, eventId);
       if (res.success) {
         await loadWallet();
         toast.success('Successfully claim award');
       } else {
-        toast.error(res.error);
+        throw Error(res.error || 'Failed to claim award');
       }
-    } catch {
-      toast.error('Occurred an error to claim award');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Occurred an error to claim award');
     }
   };
 
@@ -86,8 +97,8 @@ export default function WalletPage() {
               <Wallet className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">ENERGENIUS</h1>
-              <p className="text-slate-300">Sandbox Wallet</p>
+              <h1 className="text-3xl font-bold">AWARD SYSTEM</h1>
+              <p className="text-slate-300">Energenius</p>
             </div>
           </div>
 

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Wallet, AlertCircle, RefreshCw } from 'lucide-react';
 import { parseJwt } from '@/utils/parseJwt';
-import { userApi } from '../../api/userApi';
+import { userApi } from '@/api/userApi';
 import { authStorage } from '@/utils/authStorage';
 
 export default function LoginPage() {
