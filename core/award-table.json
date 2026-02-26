@@ -1,0 +1,14 @@
+[
+  {
+    "id": "first_login",
+    "title": "First login",
+    "encAmount": "10",
+    "maxCount": 1
+  },
+  {
+    "id": "test_event",
+    "title": "Test event",
+    "encAmount": "1",
+    "maxCount": 0
+  }
+]

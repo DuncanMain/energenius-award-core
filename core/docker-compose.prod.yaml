@@ -1,0 +1,50 @@
+services:
+  app:
+    container_name: award-system-app
+    image: ghcr.io/zentrixlab/energenius-award-system-backend:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: ${DATABASE_URL}
+      APP_VERSION: ${APP_VERSION:-1.0.0}
+      LOG_DESTINATION: ${LOG_DESTINATION:-console}
+      BUGSNAG_API_KEY: ${BUGSNAG_API_KEY:-}
+      FILE_STORAGE: ${FILE_STORAGE:-/app/storage}
+      NEXUS_URL: ${NEXUS_URL}
+      TOKEN_INTROSPECTION_URL: ${TOKEN_INTROSPECTION_URL}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      AMOY_RPC_URL: ${AMOY_RPC_URL}
+      CHAIN_ID: ${CHAIN_ID}
+      ENCOIN_CONTRACT_ADDRESS: ${ENCOIN_CONTRACT_ADDRESS}
+      AMOY_PRIVATE_KEY: ${AMOY_PRIVATE_KEY}
+    depends_on:
+      db:
+        condition: service_started
+    volumes:
+      - award_storage:/app/storage
+    networks:
+      - default
+      - shared-proxy
+
+  db:
+    container_name: award-system-db
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - award_pgdata:/var/lib/postgresql/data
+
+volumes:
+  award_pgdata:
+  award_storage:
+
+networks:
+  shared-proxy:
+    external: true
