@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Wallet, History, RefreshCw, AlertCircle, Gift } from 'lucide-react';
+import { Wallet, History, RefreshCw, AlertCircle, Gift, User } from 'lucide-react';
 import WalletBalance from '../../components/WalletBalance';
 import AwardList from '../../components/AwardList';
 import TransactionList from '../../components/TransactionList';
@@ -10,6 +10,9 @@ import { walletApi } from '../../api/walletApi';
 import { useWallet } from '../../hooks/useWallet';
 import toast from 'react-hot-toast';
 import { Award } from '@/models';
+import { userApi } from '@/api/userApi';
+import { authStorage } from '@/utils/authStorage';
+import { useRouter } from 'next/navigation';
 
 export default function WalletPage() {
   const [awards, setAwards] = useState<Award[] | null>([]);
@@ -17,7 +20,7 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(false);
   const { uid, jwt } = useAuth();
   const { wallet, spend, setWallet } = useWallet(uid!);
-
+  const router = useRouter();
   useEffect(() => {
     if (!uid) return;
     loadAwards();
@@ -84,10 +87,28 @@ export default function WalletPage() {
         throw Error(res.error || 'Failed to claim award');
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Occurred an error to claim award');
+      toast.error(
+        err instanceof Error ? err.message : 'Occurred an error to claim award'
+      );
     }
   };
 
+  const logout = async () => {
+    try {
+      const username = authStorage.getUsername();
+      const res = await userApi.logout({ username: username || '' });
+      console.log(res);
+      if (res.data && res.success) {
+        toast.success(res.data.message || 'Successfully logged out');
+        router.push('/login');
+        authStorage.clearAuth();
+      }
+    } catch (err) {
+      authStorage.clearAuth();
+      router.push('/login');
+      toast.error(err instanceof Error ? err.message : 'Failed to logout');
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
@@ -111,6 +132,16 @@ export default function WalletPage() {
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
+          </button>
+
+          <button
+            onClick={() => {
+              logout();
+            }}
+            className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl"
+          >
+            <User className={`w-4 h-4`} />
+            Logout
           </button>
         </div>
 

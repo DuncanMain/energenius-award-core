@@ -17,10 +17,10 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const router = useRouter();
   const [authState, setAuthState] = useState<AuthState>(AuthState.LOADING);
+  const token = authStorage.getToken();
+
   useEffect(() => {
     const checkAuth = () => {
-      const token = authStorage.getToken();
-
       if (!token) {
         setAuthState(AuthState.UNAUTHENTICATED);
         return;
@@ -43,7 +43,7 @@ export default function ProtectedRoute({
     };
 
     checkAuth();
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (authState === AuthState.AUTHENTICATED) {

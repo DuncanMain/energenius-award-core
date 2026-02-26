@@ -19,11 +19,10 @@ class UserApi extends BaseApi {
     );
   }
 
-  //If we need
-  async logout(): Promise<ApiResponse<null>> {
+  async logout(data : {username: string}): Promise<ApiResponse<null>> {
     authStorage.clearAuth();
     return await this.handleRequest(() =>
-      authFetch('/auth/logout', { method: 'POST' })
+      authFetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', body: JSON.stringify(data) })
     );
   }
 

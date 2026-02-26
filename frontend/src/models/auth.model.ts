@@ -19,3 +19,7 @@ export interface User {
   name: string;
   email: string;
 }
+
+export interface LoginRequest{
+  username : string;
+}
