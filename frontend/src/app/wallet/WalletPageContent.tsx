@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Wallet, History, RefreshCw, AlertCircle, Gift } from 'lucide-react';
+import { Wallet, History, RefreshCw, AlertCircle, Gift, User } from 'lucide-react';
 import WalletBalance from '../../components/WalletBalance';
 import AwardList from '../../components/AwardList';
 import TransactionList from '../../components/TransactionList';
@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { Award } from '@/models';
 import { userApi } from '@/api/userApi';
 import { authStorage } from '@/utils/authStorage';
+import { useRouter } from 'next/navigation';
 
 export default function WalletPage() {
   const [awards, setAwards] = useState<Award[] | null>([]);
@@ -19,7 +20,7 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(false);
   const { uid, jwt } = useAuth();
   const { wallet, spend, setWallet } = useWallet(uid!);
-
+  const router = useRouter();
   useEffect(() => {
     if (!uid) return;
     loadAwards();
@@ -92,24 +93,29 @@ export default function WalletPage() {
     }
   };
 
-  const logout = async()=>{
-    try{
-
+  const logout = async () => {
+    try {
       const username = authStorage.getUsername();
-      await userApi.logout({username : username || ""});
+      const res = await userApi.logout({ username: username || '' });
+      console.log(res);
+      if (res.data && res.success) {
+        toast.success(res.data.message || 'Successfully logged out');
+        router.push('/login');
+        authStorage.clearAuth();
+      }
+    } catch (err) {
       authStorage.clearAuth();
-    }
-    catch(err){
+      router.push('/login');
       toast.error(err instanceof Error ? err.message : 'Failed to logout');
     }
-  }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center">
-                <Wallet className="w-6 h-6" />
+            <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center">
+              <Wallet className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">AWARD SYSTEM</h1>
@@ -134,7 +140,7 @@ export default function WalletPage() {
             }}
             className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <User className={`w-4 h-4`} />
             Logout
           </button>
         </div>
