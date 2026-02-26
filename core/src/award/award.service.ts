@@ -97,8 +97,8 @@ export class AwardService {
 
       return {
         txHash,
-        awardedAmount: rule.encAmount, // string/number iz tabele
-        newBalance: formatUnits(newBalanceWei, 18), // "123.45" umesto wei
+        awardedAmount: rule.encAmount,
+        newBalance: formatUnits(newBalanceWei, 18),
       };
     });
   }
