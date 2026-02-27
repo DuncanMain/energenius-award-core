@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Wallet, AlertCircle, RefreshCw } from 'lucide-react';
 import { parseJwt } from '@/utils/parseJwt';
-import { userApi } from '../api/userApi';
+import { userApi } from '@/api/userApi';
 import { authStorage } from '@/utils/authStorage';
 
 export default function LoginPage() {
@@ -26,8 +26,7 @@ export default function LoginPage() {
       }
       const accessToken = res?.data?.access_token;
       const payload = parseJwt(accessToken!);
-
-      authStorage.setAuth(accessToken!, payload.sub);
+      authStorage.setAuth(accessToken!, payload.sub, payload.preferred_username);
       router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

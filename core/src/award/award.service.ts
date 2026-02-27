@@ -1,11 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { formatUnits, parseUnits } from 'ethers';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChainService } from '../chain/chain.service';
 import { TxLogRepository } from './repositories/tx-log.repository';
 import { UserWalletRepository } from '@/wallet/user-wallet.repository';
 import { deriveAddress } from '@/utils/wallet';
-import { AwardCoreError } from '@/utils/errors/award-core.error';
 import { AwardRepository } from './award.repository';
 import { AwardTableService } from './award-table.service';
 import { ConfigService } from '@nestjs/config';
@@ -23,68 +28,64 @@ export class AwardService {
     private configService: ConfigService
   ) {}
 
-  /**
-   * GIVE AWARD TO USER
-   *
-   * Business logic:
-   * 1. Input validation
-   * 2. Check if the award exists
-   * 3. Check maxCount limit
-   * 4. Blockchain transaction
-   * 5. Update database
-   */
   async awardEvent(
     uid: string,
-    eventId: AwardRuleId,
+    eventId: string,
     opts?: { timestamp?: string; source?: string }
   ) {
-    // 1. VALIDATION
     let eventTimestamp: Date | null = null;
 
-    // 2. CHECK IF THE AWARD EXISTS
     const rule = await this.awardTableService.getAwardRuleById(eventId);
     if (!rule) {
-      throw new AwardCoreError('UNKNOWN_ACTION', `Unknown eventId: ${eventId}`);
+      throw new NotFoundException(`Unknown eventId: ${eventId}`);
     }
 
     const address = deriveAddress(uid);
-    const amountWei = BigInt(parseUnits(rule.encAmount, 18).toString());
-    // 5. BLOCKCHAIN TRANSACTION
-    const txHash = await this.chainService.award(address, amountWei);
-    // 3. DATABASE TRANSACTION WITH BUSINESS LOGIC
+    const amountWei = parseUnits(rule.rewardAmount.toString(), 18);
+
     return await this.prisma.$transaction(async tx => {
-      // Ensure the wallet exists, create if necessary
       await tx.userWallet.upsert({
         where: { uid },
         update: {},
         create: { uid, address },
       });
 
-      // Ensure award counter exists
-      await this.userAwardRepo.upsertInTransaction(uid, eventId, tx);
+      await this.userAwardRepo.upsertInTransaction(uid, rule.id, tx);
 
-      // Check count (Prisma provides implicit lock in transaction)
       const userAward = await this.userAwardRepo.findByUidAndEventIdWithLock(
         uid,
-        eventId,
+        rule.id,
         tx
       );
 
       const currentCount = userAward?.count ?? 0;
-      const maxCount = Number(rule.maxCount);
-      const unlimited = maxCount === 0;
 
-      // 4. CHECK MAXCOUNT LIMIT
-      if (!unlimited && currentCount >= maxCount) {
-        throw new AwardCoreError(
-          'MAXCOUNT_EXCEEDED',
-          'maxCount reached for this award'
-        );
+      // maxPerUser = 0 znači unlimited
+      const maxUser = rule.maxPerUser;
+      const unlimited = maxUser === 0;
+
+      if (!unlimited && currentCount >= maxUser) {
+        throw new ForbiddenException('maxPerUser reached for this award');
       }
+
+      const maxDay = rule.maxPerDay;
+      if (maxDay > 0) {
+        const todayCount = await this.txLogRepo.countTodayByUidAndAwardRuleId(
+          uid,
+          eventId,
+          tx
+        );
+        if (todayCount >= maxDay) {
+          throw new ForbiddenException(
+            'maxPerDay reached for this award today'
+          );
+        }
+      }
+
+      const txHash = await this.chainService.award(address, amountWei);
       const chainId = Number(this.configService.get<string>('CHAIN_ID'));
 
-      // 6. UPDATE DATABASE
-      await this.userAwardRepo.incrementCountInTransaction(uid, eventId, tx);
+      await this.userAwardRepo.incrementCountInTransaction(uid, rule.id, tx);
 
       await this.txLogRepo.createInTransaction(
         {
@@ -92,50 +93,44 @@ export class AwardService {
           address,
           type: 'award',
           eventId,
-          label: rule.title,
-          amount: rule.encAmount,
+          label: rule.eventId,
+          amount: rule.rewardAmount.toString(),
           txHash,
-          chainId: chainId,
+          chainId,
           eventTimestamp,
           source: opts?.source ?? null,
         },
         tx
       );
 
-      // 7. RETURN RESULT
       const newBalanceWei = await this.chainService.balanceOf(address);
 
       return {
         txHash,
-        awardedAmount: rule.encAmount, // string/number from table
-        newBalance: formatUnits(newBalanceWei, 18), // "123.45" instead of wei
+        awardedAmount: rule.rewardAmount.toString(),
+        newBalance: formatUnits(newBalanceWei, 18),
       };
     });
   }
-
-  /**
-   * SPEND TOKENS
-   *
-   * Business logic:
-   * 1. Input validation
-   * 2. Check balance BEFORE blockchain transaction
-   * 3. Blockchain spend transaction
-   * 4. Update database
-   */
   async spend(uid: AwardRuleId, amountEnc: bigint, label?: string) {
     const address = deriveAddress(uid);
     const chainId = this.chainService.getChainId();
 
     await this.userWalletRepo.upsert(uid, address);
 
-    const bal = await this.chainService.balanceOf(address);
-    if (bal < amountEnc) {
-      throw new AwardCoreError('INSUFFICIENT_BALANCE', 'insufficient balance');
+    const amountWei = parseUnits(amountEnc.toString(), 18);
+    const balanceWei = await this.chainService.balanceOf(address);
+
+    if (balanceWei < amountWei) {
+      const balanceEnc = formatUnits(balanceWei, 18);
+      throw new BadRequestException(
+        `Insufficient balance: have ${balanceEnc} ENC, need ${amountEnc} ENC`
+      );
     }
 
     return await this.prisma.$transaction(async tx => {
-      // Blockchain spend transaction
-      const txHash = await this.chainService.spend(address, amountEnc);
+      const amountWei = BigInt(parseUnits(amountEnc.toString(), 18).toString());
+      const txHash = await this.chainService.spend(address, amountWei);
 
       await this.txLogRepo.createInTransaction(
         {
@@ -161,57 +156,62 @@ export class AwardService {
     });
   }
 
-  /**
-   * GET AVAILABLE AWARDS FOR USER
-   *
-   * Business logic:
-   * 1. Fetch all user awards from database
-   * 2. Compare with award-table.json
-   * 3. Calculate remaining and isAvailable
-   */
   async getAvailableAwardsForUser(uid: string) {
-    const address = deriveAddress(uid);
+    try {
+      const address = deriveAddress(uid);
 
-    // Ensure the wallet exists
-    await this.userWalletRepo.upsert(uid, address);
+      const userAwards = await this.userAwardRepo.findAllByUid(uid);
 
-    // Fetch counts from database (Repository layer)
-    const userAwards = await this.userAwardRepo.findAllByUid(uid);
+      if (!userAwards) {
+        await this.userWalletRepo.create(uid, address);
+      }
 
-    const counts = new Map<string, number>();
-    for (const ua of userAwards) {
-      counts.set(ua.eventId, ua.count);
-    }
+      const counts = new Map<string, number>();
+      for (const ua of userAwards) {
+        counts.set(ua.awardRuleId, ua.count);
+      }
 
-    const rules = await this.awardTableService.listAwardRules();
+      const rules = await this.awardTableService.listAwardRules();
 
-    // Business logic for calculating availability
-    return rules.map(rule => {
-      const awardedCount = counts.get(rule.id) ?? 0;
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
 
-      if (rule.maxCount === 0) {
+      const todayLogs = await this.txLogRepo.findTodayByUid(uid, startOfDay);
+      const todayCounts = new Map<string, number>();
+
+      for (const log of todayLogs) {
+        if (log.eventId) {
+          todayCounts.set(log.eventId, (todayCounts.get(log.eventId) ?? 0) + 1);
+        }
+      }
+
+      return rules.map(rule => {
+        const awardedCount = counts.get(rule.id) ?? 0;
+        const todayCount = todayCounts.get(rule.id) ?? 0;
+
+        const maxUser = rule.maxPerUser;
+        const maxDay = rule.maxPerDay;
+
+        const userLimitOk = maxUser === 0 || awardedCount < maxUser;
+        const dayLimitOk = maxDay === 0 || todayCount < maxDay;
+
+        const remaining = maxUser === 0 ? null : maxUser - awardedCount;
+
         return {
           id: rule.id,
-          title: rule.title,
-          encAmount: rule.encAmount,
-          maxCount: rule.maxCount,
+          eventId: rule.eventId,
+          source: rule.source,
+          rewardAmount: rule.rewardAmount,
+          maxPerUser: rule.maxPerUser,
+          maxPerDay: rule.maxPerDay,
           awardedCount,
-          remaining: null,
-          isAvailable: true,
+          todayCount,
+          remaining,
+          isAvailable: userLimitOk && dayLimitOk,
         };
-      } 
-
-      const remaining = rule.maxCount - awardedCount;
-
-      return {
-        id: rule.id,
-        title: rule.title,
-        encAmount: rule.encAmount,
-        maxCount: rule.maxCount,
-        awardedCount,
-        remaining,
-        isAvailable: remaining > 0,
-      };
-    });
+      });
+    } catch (err) {
+      throw new InternalServerErrorException('Failed to get available awards for user', err.message);
+    }
   }
 }

@@ -1,5 +1,5 @@
-import { formatEther } from "ethers";
+import { ethers } from "ethers";
 
-export function convertToETH(value: bigint | string | number): string {
-  return formatEther(value);
-}
+export const convertToETH = (wei: number | string) => {
+  return ethers.formatEther(wei.toString());
+};

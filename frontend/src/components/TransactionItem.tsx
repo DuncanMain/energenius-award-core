@@ -1,13 +1,15 @@
 'use client';
+import { TransactionType } from '@/enums/TransactionType.enum';
 import React from 'react';
 
 interface TransactionItemProps {
   tx: {
     txId: string;
+    description: string;
     label: string;
     createdAt: string;
-    type: 'award' | 'debit';
-    amountWei: string;
+    type: TransactionType;
+    amountWei: number;
   };
 }
 
@@ -21,9 +23,9 @@ export default function TransactionItem({ tx }: TransactionItemProps) {
         </div>
       </div>
       <div
-        className={`font-bold ${tx.type === 'award' ? 'text-green-400' : 'text-red-400'}`}
+        className={`font-bold ${tx.type === TransactionType.AWARD ? 'text-green-400' : 'text-red-400'}`}
       >
-        {tx.type === 'award' ? '+' : '-'}${tx.amountWei}
+        {tx.type === TransactionType.AWARD ? '+' : '-'}${tx.amountWei}
       </div>
     </div>
   );

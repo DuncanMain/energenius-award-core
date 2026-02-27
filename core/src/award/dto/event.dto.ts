@@ -1,4 +1,3 @@
-import { AwardRuleId } from '@prisma/client';
 import { IsString, IsOptional } from 'class-validator';
 
 export class EventDto {
@@ -6,7 +5,7 @@ export class EventDto {
   uid: string;
 
   @IsString()
-  eventId: AwardRuleId;
+  eventId: string;
 
   @IsOptional()
   @IsString()

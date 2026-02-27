@@ -1,9 +1,10 @@
 'use client';
 import React from 'react';
 import AwardItem from './AwardItem';
+import { AwardsResponse } from '@/models';
 
 interface AwardListProps {
-  awards: any[];
+  awards: AwardsResponse[] | null;
   onClaim: (eventId: string) => void;
 }
 
@@ -19,6 +20,6 @@ export default function AwardList({ awards, onClaim }: AwardListProps) {
       {awards.map(award => (
         <AwardItem key={award.id} award={award} onClaim={onClaim} />
       ))}
-    </div>
+    </div>  
   );
 }
