@@ -22,7 +22,7 @@ export default function LoginPage() {
     try {
       const res = await userApi.login({ email, password });
       if (!res.success) {
-        throw new Error(res.error || 'Invalid email or password2');
+        throw new Error(res.error || 'Invalid email or password');
       }
       const accessToken = res?.data?.access_token;
       const payload = parseJwt(accessToken!);
