@@ -9,7 +9,7 @@ interface WalletBalanceProps {
   onCredit: (amount: number) => void;
   spend: (
     amount: number,
-    label?: string,
+    label: string,
     onSuccess?: (data: any) => void
   ) => Promise<void>;
 }
