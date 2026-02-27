@@ -43,7 +43,7 @@ export default function ProtectedRoute({
     };
 
     checkAuth();
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (authState === AuthState.AUTHENTICATED) {

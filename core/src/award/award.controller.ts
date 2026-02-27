@@ -1,8 +1,9 @@
 import { Controller, Post, Body, Get, Param, HttpCode } from '@nestjs/common';
 import { AwardService } from './award.service';
 import { EventDto } from './dto/event.dto';
-import { AwardRule, AwardTableService } from './award-table.service';
+import {  AwardTableService } from './award-table.service';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { AwardRule } from '@prisma/client';
 
 @Controller('award')
 export class AwardController {

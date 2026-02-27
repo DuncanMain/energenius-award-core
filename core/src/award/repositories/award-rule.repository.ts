@@ -1,13 +1,14 @@
 import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { AwardRule } from '../award-table.service';
-import { AwardRuleId } from '@prisma/client';
+import { AwardRule } from '@prisma/client';
 
 type AwardRuleInput = {
-  id: AwardRuleId;
-  title: string;
-  encAmount: string;
-  maxCount: number;
+  eventId: string;
+  source: string;
+  relativeValue: number;
+  rewardAmount: number;
+  maxPerUser: number;
+  maxPerDay: number;
 };
 
 @Injectable()
@@ -18,13 +19,19 @@ export class AwardRuleRepository {
     return this.prisma.awardRule.findMany();
   }
 
-  async findById(id: AwardRuleId): Promise<AwardRule | null> {
+  async findById(id: string): Promise<AwardRule | null> {
     return this.prisma.awardRule.findUnique({
       where: { id },
     });
   }
 
-  async upsert(rule: AwardRuleInput): Promise<AwardRule> {
+  async findByEventId(eventId: string): Promise<AwardRule | null> {
+    return this.prisma.awardRule.findFirst({
+      where: { eventId },
+    });
+  }
+
+  async upsert(rule: AwardRuleInput & { id: string }): Promise<AwardRule> {
     return this.prisma.awardRule.upsert({
       where: { id: rule.id },
       update: rule,

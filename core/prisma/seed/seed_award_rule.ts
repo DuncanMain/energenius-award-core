@@ -1,48 +1,340 @@
-import { AwardRuleId, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
 });
 
-
-const prisma = new PrismaClient({adapter});
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('Seeding award rules...');
 
   const awards = [
     {
-      id: AwardRuleId.FIRST_LOGIN,
-      title: 'First login',
-      encAmount: '10',
-      maxCount: 1,
+      eventId: 'first_login',
+      source: 'Nexus',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 1,
+      maxPerDay: 0,
     },
     {
-      id: AwardRuleId.TEST_EVENT,
-      title: 'Test event',
-      encAmount: '1',
-      maxCount: 0, 
+      eventId: 'community_post',
+      source: 'Community',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'read_posts_5',
+      source: 'Community',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'community_comment',
+      source: 'Community',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'research_sustainable_living',
+      source: 'Community',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'platform_feedback_quiz',
+      source: 'Community',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'upload_energy_data',
+      source: 'Dashboard',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'upload_water_data',
+      source: 'Dashboard',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'upload_occupancy_data',
+      source: 'Dashboard',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'upload_heating_fuel_data',
+      source: 'Dashboard',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'friend_invite_success',
+      source: 'Dashboard',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 0,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'share_linkedin',
+      source: 'Dashboard',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'psycographic_survey',
+      source: 'Dashboard',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'read_guide',
+      source: 'Education Hub',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'watch_video',
+      source: 'Education Hub',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'complete_quiz',
+      source: 'Education Hub',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'read_flexibility_topic',
+      source: 'Education Hub',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'read_water_impact',
+      source: 'Education Hub',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'read_renovation_topic',
+      source: 'Education Hub',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'read_support_options',
+      source: 'Education Hub',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'read_energy_opex_relation',
+      source: 'Education Hub',
+      relativeValue: 2,
+      rewardAmount: 1,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'enplay_turn5_reached',
+      source: 'ENPlay',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'enplay_use_item',
+      source: 'ENPlay',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'enplay_purchase_res_item',
+      source: 'ENPlay',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 0,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'daily_login_bonus',
+      source: 'ENPlay',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'survival_mode_played',
+      source: 'ENPlay',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'guru_interaction',
+      source: 'Guru',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 0,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'guru_energy_saving_advice',
+      source: 'Guru',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'guru_res_advice',
+      source: 'Guru',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'guru_renovation_advice',
+      source: 'Guru',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'guru_flexibility_advice',
+      source: 'Guru',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'guru_water_advice',
+      source: 'Guru',
+      relativeValue: 2,
+      rewardAmount: 3,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'browse_res_items',
+      source: 'Market',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 1,
+      maxPerDay: 0,
+    },
+    {
+      eventId: 'view_user_data',
+      source: 'Panorama',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 5,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'view_energy_cost_forecast',
+      source: 'Panorama',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 5,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'view_day_ahead_pricing',
+      source: 'Panorama',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 5,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'view_comfort_health_data',
+      source: 'Panorama',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 5,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'view_best_time_to_consume',
+      source: 'Panorama',
+      relativeValue: 1,
+      rewardAmount: 1,
+      maxPerUser: 5,
+      maxPerDay: 1,
+    },
+    {
+      eventId: 'scan_property',
+      source: 'S2DT',
+      relativeValue: 3,
+      rewardAmount: 25,
+      maxPerUser: 1,
+      maxPerDay: 0,
     },
   ];
 
-  for (const award of awards) {
-    await prisma.awardRule.upsert({
-      where: { id: award.id },
-      update: {
-        title: award.title,
-        encAmount: award.encAmount,
-        maxCount: award.maxCount,
-      },
-      create: award,
-    });
-  }
+  await prisma.awardRule.createMany({
+    data: awards,
+    skipDuplicates: true,
+  });
 
-  console.log('Award rules seeded ✅');
+  console.log(`Award rules seeded ✅ (${awards.length} records)`);
 }
 
 main()
-  .catch((e) => {
+  .catch(e => {
     console.error(e);
     process.exit(1);
   })

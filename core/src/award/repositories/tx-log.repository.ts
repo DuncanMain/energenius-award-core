@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AwardRuleId, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 export interface CreateTxLogDto {
   uid: string;
   address: string;
-  type: 'award' | 'spend'; //Ovo cu da promenim mozda u Enum?? Manje bagova u app
-  eventId?: AwardRuleId | null;
+  type: 'award' | 'spend';
+  eventId?: string | null;
   label?: string | null;
   amount: string;
   txHash: string;
@@ -89,6 +89,34 @@ export class TxLogRepository {
         eventTimestamp: data.eventTimestamp ?? null,
         source: data.source ?? null,
       },
+    });
+  }
+
+  async countTodayByUidAndAwardRuleId(
+    uid: string,
+    awardRuleId: string,
+    tx: Prisma.TransactionClient
+  ) {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    return tx.txLog.count({
+      where: {
+        uid,
+        eventId: awardRuleId,
+        createdAt: { gte: startOfDay },
+      },
+    });
+  }
+
+  async findTodayByUid(uid: string, startOfDay: Date) {
+    return this.prisma.txLog.findMany({
+      where: {
+        uid,
+        createdAt: { gte: startOfDay },
+        type: 'award',
+      },
+      select: { eventId: true },
     });
   }
 }
