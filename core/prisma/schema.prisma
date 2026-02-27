@@ -25,23 +25,29 @@ model UserWallet {
 }
 
 model AwardRule {
-  id        AwardRuleId @id
-  title     String
-  encAmount String   // čuvamo kao string jer su “whole tokens as string”
-  maxCount  Int      // 0 = unlimited
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String      @id @default(uuid())
+  eventId       String
+  source        String
+  relativeValue Int
+  rewardAmount  Int
+  maxPerUser    Int
+  maxPerDay     Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  userAwards    UserAward[]
 }
 
 model UserAward {
-  id        Int      @id @default(autoincrement())
-  uid       String
-  eventId   AwardRuleId   @map("event_id")
-  count     Int      @default(0)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          Int      @id @default(autoincrement())
+  uid         String
+  awardRuleId String      @map("award_rule_id")
+  count       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  @@unique([uid, eventId])
+  awardRule AwardRule @relation(fields: [awardRuleId], references: [id])
+
+  @@unique([uid, awardRuleId])
   @@map("user_awards")
 }
 
@@ -50,10 +56,10 @@ model TxLog {
   id             Int       @id @default(autoincrement())
   uid            String
   address        String
-  type           String 
-  eventId        AwardRuleId?   @map("event_id")
+  type           String
+  eventId        String?   @map("event_id")
   label          String?
-  amount         Decimal 
+  amount         Decimal
   txHash         String    @map("tx_hash")
   chainId        Int       @map("chain_id")
   eventTimestamp DateTime? @map("event_timestamp")

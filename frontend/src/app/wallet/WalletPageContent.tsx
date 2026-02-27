@@ -9,13 +9,13 @@ import { convertToETH } from '@/utils/convert';
 import { walletApi } from '../../api/walletApi';
 import { useWallet } from '../../hooks/useWallet';
 import toast from 'react-hot-toast';
-import { Award } from '@/models';
+import { Award, AwardsResponse } from '@/models';
 import { userApi } from '@/api/userApi';
 import { authStorage } from '@/utils/authStorage';
 import { useRouter } from 'next/navigation';
 
 export default function WalletPage() {
-  const [awards, setAwards] = useState<Award[] | null>([]);
+  const [awards, setAwards] = useState<AwardsResponse[] | null>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { uid, jwt } = useAuth();

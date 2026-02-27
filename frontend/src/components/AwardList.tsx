@@ -20,6 +20,6 @@ export default function AwardList({ awards, onClaim }: AwardListProps) {
       {awards.map(award => (
         <AwardItem key={award.id} award={award} onClaim={onClaim} />
       ))}
-    </div>
+    </div>  
   );
 }

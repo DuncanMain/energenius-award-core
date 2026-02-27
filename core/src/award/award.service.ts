@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { formatUnits, parseUnits } from 'ethers';
@@ -29,7 +30,7 @@ export class AwardService {
 
   async awardEvent(
     uid: string,
-    eventId: AwardRuleId,
+    eventId: string,
     opts?: { timestamp?: string; source?: string }
   ) {
     let eventTimestamp: Date | null = null;
@@ -40,7 +41,7 @@ export class AwardService {
     }
 
     const address = deriveAddress(uid);
-    const amountWei = parseUnits(rule.encAmount.toString(), 18);
+    const amountWei = parseUnits(rule.rewardAmount.toString(), 18);
 
     return await this.prisma.$transaction(async tx => {
       await tx.userWallet.upsert({
@@ -49,32 +50,42 @@ export class AwardService {
         create: { uid, address },
       });
 
-      // Ensure award counter exists
-      await this.userAwardRepo.upsertInTransaction(uid, eventId, tx);
+      await this.userAwardRepo.upsertInTransaction(uid, rule.id, tx);
 
-      // Check count (Prisma provides implicit lock in transaction)
       const userAward = await this.userAwardRepo.findByUidAndEventIdWithLock(
         uid,
-        eventId,
+        rule.id,
         tx
       );
 
       const currentCount = userAward?.count ?? 0;
-      const maxCount = Number(rule.maxCount);
-      const unlimited = maxCount === 0;
 
-      // 4. CHECK MAXCOUNT LIMIT
-      if (!unlimited && currentCount >= maxCount) {
-        throw new ForbiddenException('maxCount reached for this award');
+      // maxPerUser = 0 znači unlimited
+      const maxUser = rule.maxPerUser;
+      const unlimited = maxUser === 0;
+
+      if (!unlimited && currentCount >= maxUser) {
+        throw new ForbiddenException('maxPerUser reached for this award');
       }
 
-      // 5. BLOCKCHAIN TRANSAKCIJA
-      const txHash = await this.chainService.award(address, amountWei);
+      const maxDay = rule.maxPerDay;
+      if (maxDay > 0) {
+        const todayCount = await this.txLogRepo.countTodayByUidAndAwardRuleId(
+          uid,
+          eventId,
+          tx
+        );
+        if (todayCount >= maxDay) {
+          throw new ForbiddenException(
+            'maxPerDay reached for this award today'
+          );
+        }
+      }
 
+      const txHash = await this.chainService.award(address, amountWei);
       const chainId = Number(this.configService.get<string>('CHAIN_ID'));
 
-      // 6. UPDATE DATABASE
-      await this.userAwardRepo.incrementCountInTransaction(uid, eventId, tx);
+      await this.userAwardRepo.incrementCountInTransaction(uid, rule.id, tx);
 
       await this.txLogRepo.createInTransaction(
         {
@@ -82,27 +93,25 @@ export class AwardService {
           address,
           type: 'award',
           eventId,
-          label: rule.title,
-          amount: rule.encAmount,
+          label: rule.eventId,
+          amount: rule.rewardAmount.toString(),
           txHash,
-          chainId: chainId,
+          chainId,
           eventTimestamp,
           source: opts?.source ?? null,
         },
         tx
       );
 
-      // 7. RETURN RESULT
       const newBalanceWei = await this.chainService.balanceOf(address);
 
       return {
         txHash,
-        awardedAmount: rule.encAmount,
+        awardedAmount: rule.rewardAmount.toString(),
         newBalance: formatUnits(newBalanceWei, 18),
       };
     });
   }
-
   async spend(uid: AwardRuleId, amountEnc: bigint, label?: string) {
     const address = deriveAddress(uid);
     const chainId = this.chainService.getChainId();
@@ -148,45 +157,61 @@ export class AwardService {
   }
 
   async getAvailableAwardsForUser(uid: string) {
-    const address = deriveAddress(uid);
+    try {
+      const address = deriveAddress(uid);
 
-    await this.userWalletRepo.upsert(uid, address);
+      const userAwards = await this.userAwardRepo.findAllByUid(uid);
 
-    const userAwards = await this.userAwardRepo.findAllByUid(uid);
-
-    const counts = new Map<string, number>();
-    for (const ua of userAwards) {
-      counts.set(ua.eventId, ua.count);
-    }
-
-    const rules = await this.awardTableService.listAwardRules();
-
-    return rules.map(rule => {
-      const awardedCount = counts.get(rule.id) ?? 0;
-
-      if (rule.maxCount === 0) {
-        return {
-          id: rule.id,
-          title: rule.title,
-          encAmount: rule.encAmount,
-          maxCount: rule.maxCount,
-          awardedCount,
-          remaining: null,
-          isAvailable: true,
-        };
+      if (!userAwards) {
+        await this.userWalletRepo.create(uid, address);
       }
 
-      const remaining = rule.maxCount - awardedCount;
+      const counts = new Map<string, number>();
+      for (const ua of userAwards) {
+        counts.set(ua.awardRuleId, ua.count);
+      }
 
-      return {
-        id: rule.id,
-        title: rule.title,
-        encAmount: rule.encAmount,
-        maxCount: rule.maxCount,
-        awardedCount,
-        remaining,
-        isAvailable: remaining > 0,
-      };
-    });
+      const rules = await this.awardTableService.listAwardRules();
+
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const todayLogs = await this.txLogRepo.findTodayByUid(uid, startOfDay);
+      const todayCounts = new Map<string, number>();
+
+      for (const log of todayLogs) {
+        if (log.eventId) {
+          todayCounts.set(log.eventId, (todayCounts.get(log.eventId) ?? 0) + 1);
+        }
+      }
+
+      return rules.map(rule => {
+        const awardedCount = counts.get(rule.id) ?? 0;
+        const todayCount = todayCounts.get(rule.id) ?? 0;
+
+        const maxUser = rule.maxPerUser;
+        const maxDay = rule.maxPerDay;
+
+        const userLimitOk = maxUser === 0 || awardedCount < maxUser;
+        const dayLimitOk = maxDay === 0 || todayCount < maxDay;
+
+        const remaining = maxUser === 0 ? null : maxUser - awardedCount;
+
+        return {
+          id: rule.id,
+          eventId: rule.eventId,
+          source: rule.source,
+          rewardAmount: rule.rewardAmount,
+          maxPerUser: rule.maxPerUser,
+          maxPerDay: rule.maxPerDay,
+          awardedCount,
+          todayCount,
+          remaining,
+          isAvailable: userLimitOk && dayLimitOk,
+        };
+      });
+    } catch (err) {
+      throw new InternalServerErrorException('Failed to get available awards for user', err.message);
+    }
   }
 }

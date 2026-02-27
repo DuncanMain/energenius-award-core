@@ -6,8 +6,8 @@ export interface Award {
 
 export interface AwardsResponse {
   id: string;
-  title: string;
-  encAmount: string;
+  eventId: string;
+  rewardAmount: string; // no. enc coins
   maxCount: number;
   awardedCount: number;
   remaining: number;
