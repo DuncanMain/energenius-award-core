@@ -9,6 +9,8 @@ export interface AwardsResponse {
   eventId: string;
   rewardAmount: string; // no. enc coins
   maxCount: number;
+  maxPerDay: number;
+  todayCount: number;
   awardedCount: number;
   remaining: number;
   isAvailable: boolean;

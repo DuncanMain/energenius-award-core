@@ -32,7 +32,7 @@ export default function WalletBalance({
   };
 
   return (
-    <div className="lg:col-span-2 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-3xl p-8 shadow-2xl">
+    <div className="lg:col-span-2 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-3xl p-8 shadow-2xl h-max">
       <div className="flex justify-between items-start mb-6">
         <div>
           <p className="text-cyan-100 mb-2">Total Balance</p>
