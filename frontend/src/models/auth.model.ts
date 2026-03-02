@@ -8,6 +8,10 @@ export interface LoginResponse {
   user: User;
 }
 
+export interface LogoutResponse {
+  message: string;
+}
+
 export interface CurrentUserResponse {
   id: string;
   name: string;

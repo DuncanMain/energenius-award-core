@@ -2,7 +2,7 @@ import { authFetch } from './fetchClient';
 import { ApiResponse } from './apiResponse';
 import { authStorage } from '@/utils/authStorage';
 import { BaseApi } from './baseApi';
-import { CurrentUserResponse, LoginRequest, LoginResponse } from '@/models';
+import { CurrentUserResponse, LoginRequest, LoginResponse, LogoutResponse } from '@/models';
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_NEXUS_API_URL ||
@@ -19,7 +19,7 @@ class UserApi extends BaseApi {
     );
   }
 
-  async logout(data : {username: string}): Promise<ApiResponse<null>> {
+  async logout(data : {username: string}): Promise<ApiResponse<LogoutResponse>> {
     authStorage.clearAuth();
     return await this.handleRequest(() =>
       authFetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', body: JSON.stringify(data) })

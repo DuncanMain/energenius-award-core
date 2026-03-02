@@ -19,13 +19,15 @@ export default function AwardItem({ award, onClaim }: AwardItemProps) {
       setLoader(false);
     }
   };
-
+  const isAvailableMore = ()=>{
+    return award.maxPerDay === award.todayCount;
+  }
   return (
     <>
       <button
         onClick={onClaimWithLoader}
-        className={`w-full bg-slate-700 hover:bg-slate-600 p-3 rounded-xl text-left`}
-        disabled={loader}
+        className={`w-full bg-slate-700 hover:bg-slate-600 p-3 rounded-xl text-left ${isAvailableMore() ? 'opacity-50 cursor-not-allowed' : ''}`}
+        disabled={loader || isAvailableMore()}
       >
         <div className="font-semibold">{award.eventId}</div>
         <div className="text-cyan-400">+${award.rewardAmount}</div>

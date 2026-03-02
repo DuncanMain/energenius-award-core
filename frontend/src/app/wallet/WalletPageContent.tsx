@@ -167,7 +167,7 @@ export default function WalletPage() {
               onCredit={handleCredit}
             />
 
-            <div className="bg-slate-800 rounded-3xl p-6 shadow-xl">
+            <div className="bg-slate-800 rounded-3xl p-6 shadow-xl h-80 overflow-hidden overflow-y-scroll">
               <div className="flex items-center gap-2 mb-4">
                 <Gift className="w-5 h-5 text-cyan-400" />
                 <h3 className="font-bold text-lg">Rewards</h3>
