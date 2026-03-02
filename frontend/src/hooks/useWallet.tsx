@@ -15,15 +15,16 @@ export function useWallet(uid: string | null) {
     setLoading(true);
     try {
       const res = await walletApi.getWallet(uid);
-      if (res.success) {
-        const data = res.data;
-        data.balanceWei = Number(convertToETH(data.balanceWei));
-        setWallet(data);
-        if (prevBalance.current && data.balanceWei > prevBalance.current) {
-          const diff = data.balanceWei - prevBalance.current;
-          toast.success(`Balance increased by $${diff}`);
-        }
-        prevBalance.current = data.balanceWei;
+      if (res.success && res.data) {
+          const data = res.data;
+          const balance = Number(convertToETH(data.balanceWei));
+          data.balanceWei = balance.toString();
+          setWallet(data);
+          if (prevBalance.current && balance > prevBalance.current) {
+            const diff = balance - prevBalance.current;
+            toast.success(`Balance increased by $${diff}`);
+          }
+          prevBalance.current = balance;
       } else {
         authStorage.clearAuth();
         setError(res.error || 'Unknown error');
