@@ -1,4 +1,4 @@
-import { Award, SpendResponse, Wallet } from '@/models';
+import { AwardsResponse, SpendResponse, Wallet } from '@/models';
 import { ApiResponse } from './apiResponse';
 import { BaseApi } from './baseApi';
 import { authFetch } from './fetchClient';
@@ -7,7 +7,6 @@ const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || '/v1').replace(
   /\/+$/,
   ''
 );
-
 class WalletApi extends BaseApi {
   async getWallet(uid: string): Promise<ApiResponse<Wallet>> {
     return this.handleRequest(() => authFetch(`${API_BASE_URL}/wallet/${uid}`));
@@ -60,10 +59,10 @@ class WalletApi extends BaseApi {
     );
   }
 
-  async getAwards(): Promise<ApiResponse<Award[]>> {
+  async getAwards(): Promise<ApiResponse<AwardsResponse[]>> {
     return this.handleRequest(() => authFetch(`/award`));
   }
-  async getAvailableAwards(uid: string): Promise<ApiResponse<Award[]>> {
+  async getAvailableAwards(uid: string): Promise<ApiResponse<AwardsResponse[]>> {
     return this.handleRequest(() =>
       authFetch(`${API_BASE_URL}/award/available/${uid}`)
     );

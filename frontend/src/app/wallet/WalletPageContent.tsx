@@ -9,7 +9,7 @@ import { convertToETH } from '@/utils/convert';
 import { walletApi } from '../../api/walletApi';
 import { useWallet } from '../../hooks/useWallet';
 import toast from 'react-hot-toast';
-import { Award, AwardsResponse } from '@/models';
+import { AwardsResponse } from '@/models';
 import { userApi } from '@/api/userApi';
 import { authStorage } from '@/utils/authStorage';
 import { useRouter } from 'next/navigation';
@@ -97,7 +97,6 @@ export default function WalletPage() {
     try {
       const username = authStorage.getUsername();
       const res = await userApi.logout({ username: username || '' });
-      console.log(res);
       if (res.data && res.success) {
         toast.success(res.data.message || 'Successfully logged out');
         router.push('/login');
