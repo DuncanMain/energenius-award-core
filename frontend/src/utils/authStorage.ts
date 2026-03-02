@@ -1,7 +1,7 @@
 const JWT_KEY = 'jwt';
 const UID_KEY = 'uid';
 const USERNAME_KEY = 'username';
-
+const isBrowser = typeof window !== "undefined";
 export const authStorage = {
   setAuth(token: string, uid: string, username: string) {
     localStorage.setItem(JWT_KEY, token);
@@ -9,13 +9,16 @@ export const authStorage = {
     localStorage.setItem(USERNAME_KEY, username);
   },
   getUsername() {
+    if (!isBrowser) return;
     return localStorage.getItem(USERNAME_KEY);
   },
   getToken() {
+    if (!isBrowser) return;
     return localStorage.getItem(JWT_KEY);
   },
 
   getUid() {
+    if (!isBrowser) return;
     return localStorage.getItem(UID_KEY);
   },
 
