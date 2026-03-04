@@ -16,7 +16,7 @@ export interface WalletHistoryItem {
 export interface WalletSnapshot {
   uid: string;
   address: string;
-  balanceWei: string;
+  balance_wei: string;
   history: WalletHistoryItem[];
 }
 
@@ -61,7 +61,7 @@ export class WalletService {
     return {
       uid,
       address,
-      balanceWei: balWei.toString(),
+      balance_wei: balWei.toString(),
       history,
     };
   }
