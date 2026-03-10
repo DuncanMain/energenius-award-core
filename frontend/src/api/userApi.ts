@@ -26,7 +26,6 @@ class UserApi extends BaseApi {
     );
   }
 
-  //If we need
   async getCurrentUser(): Promise<ApiResponse<CurrentUserResponse>> {
     return this.handleRequest(() => authFetch('/auth/me'));
   }
