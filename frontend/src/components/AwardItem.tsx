@@ -20,7 +20,7 @@ export default function AwardItem({ award, onClaim }: AwardItemProps) {
     }
   };
   const isAvailableMore = ()=>{
-    return award.maxPerDay === award.todayCount;
+    return award.max_per_day === award.today_count;
   }
   return (
     <>
@@ -29,9 +29,9 @@ export default function AwardItem({ award, onClaim }: AwardItemProps) {
         className={`w-full bg-slate-700 hover:bg-slate-600 p-3 rounded-xl text-left ${isAvailableMore() ? 'opacity-50 cursor-not-allowed' : ''}`}
         disabled={loader || isAvailableMore()}
       >
-        <div className="font-semibold">{award.eventId}</div>
-        <div className="text-cyan-400">+${award.rewardAmount}</div>
-        <div className="text-cyan-400">{award.isAvailable ? 'Available' : 'Not Available'}</div>
+        <div className="font-semibold">{award.event_id}</div>
+        <div className="text-cyan-400">+${award.reward_amount}</div>
+        <div className="text-cyan-400">{award.is_available ? 'Available' : 'Not Available'}</div>
         <div className="text-cyan-400">Remaining: {award.remaining ?? '0'}</div>
         {loader && <RefreshCw className="w-4 h-4 animate-spin" />}
       </button>

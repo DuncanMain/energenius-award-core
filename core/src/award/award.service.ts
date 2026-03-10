@@ -107,8 +107,8 @@ export class AwardService {
 
       return {
         txHash,
-        awardedAmount: rule.rewardAmount.toString(),
-        newBalance: formatUnits(newBalanceWei, 18),
+        awarde_amount: rule.rewardAmount.toString(),
+        new_balance: formatUnits(newBalanceWei, 18),
       };
     });
   }
@@ -149,9 +149,9 @@ export class AwardService {
       const newBalanceWei = await this.chainService.balanceOf(address);
 
       return {
-        txHash,
+        tx_hash : txHash,
         address,
-        newBalanceWei: newBalanceWei.toString(),
+        new_balance_wei: newBalanceWei.toString(),
       };
     });
   }
@@ -199,15 +199,15 @@ export class AwardService {
 
         return {
           id: rule.id,
-          eventId: rule.eventId,
+          event_id: rule.eventId,
           source: rule.source,
-          rewardAmount: rule.rewardAmount,
-          maxPerUser: rule.maxPerUser,
-          maxPerDay: rule.maxPerDay,
-          awardedCount,
-          todayCount,
+          reward_amount: rule.rewardAmount,
+          max_per_user: rule.maxPerUser,
+          max_per_day: rule.maxPerDay,
+          awarded_count: awardedCount,
+          today_count: todayCount,
           remaining,
-          isAvailable: userLimitOk && dayLimitOk,
+          is_available: userLimitOk && dayLimitOk,
         };
       });
     } catch (err) {
