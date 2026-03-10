@@ -6,7 +6,7 @@ export class UserWalletRepository {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Pronađi wallet po UID-u
+   * Find wallet by UID
    */
   async findByUid(uid: string) {
     return this.prisma.userWallet.findUnique({
@@ -15,7 +15,7 @@ export class UserWalletRepository {
   }
 
   /**
-   * Kreiraj wallet ili ignoriši ako već postoji (upsert)
+   * Create or update wallet for a user (upsert)
    */
   async upsert(uid: string, address: string) {
     return this.prisma.userWallet.upsert({
@@ -26,7 +26,7 @@ export class UserWalletRepository {
   }
 
   /**
-   * Kreiraj wallet (samo ako ne postoji)
+   * Create wallet for a user (only if it doesn't exist)
    */
   async create(uid: string, address: string) {
     return this.prisma.userWallet.create({
