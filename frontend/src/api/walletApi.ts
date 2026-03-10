@@ -41,7 +41,7 @@ class WalletApi extends BaseApi {
     return this.handleRequest(() =>
       authFetch(`${API_BASE_URL}/award/event`, {
         method: 'POST',
-        body: JSON.stringify({ eventId, uid }),
+        body: JSON.stringify({ event_id: eventId, uid }),
       })
     );
   }
