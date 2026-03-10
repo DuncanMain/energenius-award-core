@@ -55,7 +55,7 @@ export class AwardController {
 
   @Get('available/:uid')
   @ApiOperation({ summary: 'Get available awards for a specific user' })
-  @ApiParam({ name: 'uid', description: 'UID korisnika' })
+  @ApiParam({ name: 'uid', description: 'UID user' })
   @ApiResponse({
     status: 200,
     description: 'List of available awards for the user',
