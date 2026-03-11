@@ -50,24 +50,6 @@ export class AwardService {
         create: { uid, address },
       });
 
-      await this.userAwardRepo.upsertInTransaction(uid, rule.id, tx);
-
-      const userAward = await this.userAwardRepo.findByUidAndEventIdWithLock(
-        uid,
-        rule.id,
-        tx
-      );
-
-      const currentCount = userAward?.count ?? 0;
-
-      // maxPerUser = 0 znači unlimited
-      const maxUser = rule.maxPerUser;
-      const unlimited = maxUser === 0;
-
-      if (!unlimited && currentCount >= maxUser) {
-        throw new ForbiddenException('maxPerUser reached for this award');
-      }
-
       const maxDay = rule.maxPerDay;
       if (maxDay > 0) {
         const todayCount = await this.txLogRepo.countTodayByUidAndAwardRuleId(
@@ -81,6 +63,18 @@ export class AwardService {
           );
         }
       }
+
+      const existingAward =
+        await this.userAwardRepo.findByUidAndEventIdWithLock(uid, rule.id, tx);
+      const currentCount = existingAward?.count ?? 0;
+      const maxUser = rule.maxPerUser;
+      const unlimited = maxUser === 0;
+
+      if (!unlimited && currentCount >= maxUser) {
+        throw new ForbiddenException('maxPerUser reached for this award');
+      }
+
+      await this.userAwardRepo.upsertInTransaction(uid, rule.id, tx);
 
       const txHash = await this.chainService.award(address, amountWei);
       const chainId = Number(this.configService.get<string>('CHAIN_ID'));
@@ -149,7 +143,7 @@ export class AwardService {
       const newBalanceWei = await this.chainService.balanceOf(address);
 
       return {
-        tx_hash : txHash,
+        tx_hash: txHash,
         address,
         new_balance_wei: newBalanceWei.toString(),
       };
@@ -211,7 +205,10 @@ export class AwardService {
         };
       });
     } catch (err) {
-      throw new InternalServerErrorException('Failed to get available awards for user', err.message);
+      throw new InternalServerErrorException(
+        'Failed to get available awards for user',
+        err.message
+      );
     }
   }
 }
