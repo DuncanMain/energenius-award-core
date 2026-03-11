@@ -1,6 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Wallet, History, RefreshCw, AlertCircle, Gift, User } from 'lucide-react';
+import {
+  Wallet,
+  History,
+  RefreshCw,
+  AlertCircle,
+  Gift,
+  User,
+} from 'lucide-react';
 import WalletBalance from '../../components/WalletBalance';
 import AwardList from '../../components/AwardList';
 import TransactionList from '../../components/TransactionList';
@@ -20,7 +27,7 @@ export default function WalletPage() {
   const [loading] = useState(false);
   const { uid, jwt } = useAuth();
 
-  const { wallet, spend,reload } = useWallet(uid!);
+  const { wallet, spend, reload } = useWallet(uid!);
   const router = useRouter();
   useEffect(() => {
     if (!uid) return;
@@ -105,7 +112,7 @@ export default function WalletPage() {
               reload();
               loadAwards();
             }}
-            className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl"
+            className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl ml-auto mr-2"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -151,6 +158,22 @@ export default function WalletPage() {
                 <h3 className="font-bold text-lg">Rewards</h3>
               </div>
               <AwardList awards={awards} onClaim={handleAward} />
+            </div>
+
+            <div className="bg-slate-800 rounded-3xl p-6 shadow-xl h-80 flex flex-col justify-center">
+              <h3 className="font-bold text-lg text-cyan-400 mb-4">
+                About EN Coins
+              </h3>
+              <p className="text-slate-300 text-sm leading-relaxed">
+                The ENERGENIUS Award System lets you earn EN Coins by exploring
+                and using the ENERGENIUS tools. When you complete actions listed
+                in "Available Rewards", you receive EN Coins automatically. Your
+                EN Coins are stored in a secure digital wallet linked to your
+                account. Transactions are recorded on the Ethereum-compatible
+                blockchain, which provides a transparent and tamper-resistant
+                record of your rewards. You can use your EN Coins in the
+                ENERGENIUS Marketplace to redeem rewards and services.
+              </p>
             </div>
 
             <div className="lg:col-span-3 bg-slate-800 rounded-3xl p-6 shadow-xl">

@@ -63,6 +63,6 @@ export class WalletService {
       address,
       balance_wei: balWei.toString(),
       history,
-    };
+    };  
   }
 }
