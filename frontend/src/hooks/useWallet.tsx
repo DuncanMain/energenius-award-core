@@ -17,8 +17,8 @@ export function useWallet(uid: string | null) {
       const res = await walletApi.getWallet(uid);
       if (res.success && res.data) {
           const data = res.data;
-          const balance = Number(convertToETH(data.balanceWei));
-          data.balanceWei = balance.toString();
+          const balance = Number(convertToETH(data.balance_wei));
+          data.balance_wei = balance.toString();
           setWallet(data);
           if (prevBalance.current && balance > prevBalance.current) {
             const diff = balance - prevBalance.current;
@@ -26,6 +26,7 @@ export function useWallet(uid: string | null) {
           }
           prevBalance.current = balance;
       } else {
+        console.log(res);
         authStorage.clearAuth();
         setError(res.error || 'Unknown error');
       }

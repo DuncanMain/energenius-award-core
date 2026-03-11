@@ -1,6 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Wallet, History, RefreshCw, AlertCircle, Gift, User } from 'lucide-react';
+import {
+  Wallet,
+  History,
+  RefreshCw,
+  AlertCircle,
+  Gift,
+  User,
+} from 'lucide-react';
 import WalletBalance from '../../components/WalletBalance';
 import AwardList from '../../components/AwardList';
 import TransactionList from '../../components/TransactionList';
@@ -17,38 +24,15 @@ import { useRouter } from 'next/navigation';
 export default function WalletPage() {
   const [awards, setAwards] = useState<AwardsResponse[] | null>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const { uid, jwt } = useAuth();
-  const { wallet, spend, setWallet } = useWallet(uid!);
+
+  const { wallet, spend, reload } = useWallet(uid!);
   const router = useRouter();
   useEffect(() => {
     if (!uid) return;
     loadAwards();
   }, [uid, jwt]);
-
-  const loadWallet = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await walletApi.getWallet(uid);
-      if (!res.success && res.error?.includes('not found')) {
-        const address = `0x${Math.random().toString(16).substr(2, 40)}`;
-        const createRes = await walletApi.createWallet(uid!, address);
-        if (createRes.success) {
-          setWallet(createRes.data);
-        }
-      }
-      if (res.success && res.data) {
-        res.data.balanceWei = convertToETH(res.data.balanceWei);
-        setWallet(res.data);
-      } else {
-        throw new Error(res.error || 'Failed to load wallet');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    }
-    setLoading(false);
-  };
 
   const loadAwards = async () => {
     try {
@@ -67,7 +51,7 @@ export default function WalletPage() {
     try {
       const res = await walletApi.creditWallet(uid, amount, `Added $${amount}`);
       if (res.success) {
-        await loadWallet();
+        await reload();
       } else {
         throw new Error(res.error || 'Failed to add funds');
       }
@@ -81,7 +65,8 @@ export default function WalletPage() {
     try {
       const res = await walletApi.claimAward(uid, eventId);
       if (res.success) {
-        await loadWallet();
+        await reload();
+        await loadAwards();
         toast.success('Successfully claim award');
       } else {
         throw Error(res.error || 'Failed to claim award');
@@ -124,10 +109,10 @@ export default function WalletPage() {
 
           <button
             onClick={() => {
-              loadWallet();
+              reload();
               loadAwards();
             }}
-            className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl"
+            className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl ml-auto mr-2"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -162,7 +147,7 @@ export default function WalletPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <WalletBalance
-              balance={wallet?.balanceWei || 0}
+              balance={wallet?.balance_wei || 0}
               spend={spend}
               onCredit={handleCredit}
             />
@@ -173,6 +158,22 @@ export default function WalletPage() {
                 <h3 className="font-bold text-lg">Rewards</h3>
               </div>
               <AwardList awards={awards} onClaim={handleAward} />
+            </div>
+
+            <div className="bg-slate-800 rounded-3xl p-6 shadow-xl h-80 flex flex-col justify-center">
+              <h3 className="font-bold text-lg text-cyan-400 mb-4">
+                About EN Coins
+              </h3>
+              <p className="text-slate-300 text-sm leading-relaxed">
+                The ENERGENIUS Award System lets you earn EN Coins by exploring
+                and using the ENERGENIUS tools. When you complete actions listed
+                in "Available Rewards", you receive EN Coins automatically. Your
+                EN Coins are stored in a secure digital wallet linked to your
+                account. Transactions are recorded on the Ethereum-compatible
+                blockchain, which provides a transparent and tamper-resistant
+                record of your rewards. You can use your EN Coins in the
+                ENERGENIUS Marketplace to redeem rewards and services.
+              </p>
             </div>
 
             <div className="lg:col-span-3 bg-slate-800 rounded-3xl p-6 shadow-xl">
