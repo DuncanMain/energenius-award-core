@@ -73,35 +73,8 @@ export class AwardService {
       if (!unlimited && currentCount >= maxUser) {
         throw new ForbiddenException('maxPerUser reached for this award');
       }
-      
+
       await this.userAwardRepo.upsertInTransaction(uid, rule.id, tx);
-
-      // const userAward = await this.userAwardRepo.findByUidAndEventIdWithLock(
-      //   uid,
-      //   rule.id,
-      //   tx
-      // );
-
-      // const currentCount = userAward?.count ?? 0;
-
-      // maxPerUser = 0 znači unlimited
-      // const maxUser = rule.maxPerUser;
-      // const unlimited = maxUser === 0;
-
-
-      // const maxDay = rule.maxPerDay;
-      // if (maxDay > 0) {
-      //   const todayCount = await this.txLogRepo.countTodayByUidAndAwardRuleId(
-      //     uid,
-      //     eventId,
-      //     tx
-      //   );
-      //   if (todayCount >= maxDay) {
-      //     throw new ForbiddenException(
-      //       'maxPerDay reached for this award today'
-      //     );
-      //   }
-      // }
 
       const txHash = await this.chainService.award(address, amountWei);
       const chainId = Number(this.configService.get<string>('CHAIN_ID'));

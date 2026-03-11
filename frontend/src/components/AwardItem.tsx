@@ -20,7 +20,6 @@ export default function AwardItem({ award, onClaim }: AwardItemProps) {
     }
   };
   const isUnavailable = () => {
-    console.log(award.remaining);
     return !award.is_available;
   };
   return (
