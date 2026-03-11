@@ -40,7 +40,7 @@ export class TxLogRepository {
   }
 
   /**
-   * Pronađi zadnjih N transakcija za korisnika
+   * Find recent transactions for a user, ordered by creation date descending
    */
   async findRecentByUid(uid: string, limit: number = 10) {
     return this.prisma.txLog.findMany({
@@ -51,7 +51,7 @@ export class TxLogRepository {
   }
 
   /**
-   * Pronađi sve transakcije za korisnika
+   * Find all transactions for a user, ordered by creation date descending
    */
   async findAllByUid(uid: string) {
     return this.prisma.txLog.findMany({

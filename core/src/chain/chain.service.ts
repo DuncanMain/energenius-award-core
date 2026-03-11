@@ -32,7 +32,7 @@ export class ChainService implements OnModuleInit {
   }
 
   /**
-   * Proverava balans korisnika na blockchain-u
+   * Check balance of a given address in ENCOIN tokens
    */
   async balanceOf(address: string): Promise<bigint> {
     const bal = await this.encoin.balanceOf(address);
@@ -40,7 +40,7 @@ export class ChainService implements OnModuleInit {
   }
 
   /**
-   * Daje tokene korisniku (award)
+   * Give tokens to a user (award)
    */
   async award(to: string, amountWei: bigint): Promise<string> {
     const tx = await this.encoin.award(to, amountWei);
@@ -49,7 +49,7 @@ export class ChainService implements OnModuleInit {
   }
 
   /**
-   * Oduzima tokene od korisnika (spend)
+   * Take tokens from a user (spend)
    */
   async spend(from: string, amountWei: bigint): Promise<string> {
     const tx = await this.encoin.spend(from, amountWei);
@@ -58,14 +58,14 @@ export class ChainService implements OnModuleInit {
   }
 
   /**
-   * Vraća adresu vlasnika smart contract-a
+   * Returns the address of the smart contract owner
    */
   async owner(): Promise<string> {
     return await this.encoin.owner();
   }
 
   /**
-   * Vraća chain ID
+   * Returns the chain ID
    */
   getChainId(): number {
     return this.chainId;
