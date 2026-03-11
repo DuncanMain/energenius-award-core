@@ -1,5 +1,5 @@
 export interface Wallet {
-  balanceWei: string;
+  balance_wei: string;
   history: WalletTransaction[];
 }
 

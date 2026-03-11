@@ -17,38 +17,15 @@ import { useRouter } from 'next/navigation';
 export default function WalletPage() {
   const [awards, setAwards] = useState<AwardsResponse[] | null>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const { uid, jwt } = useAuth();
-  const { wallet, spend, setWallet } = useWallet(uid!);
+
+  const { wallet, spend,reload } = useWallet(uid!);
   const router = useRouter();
   useEffect(() => {
     if (!uid) return;
     loadAwards();
   }, [uid, jwt]);
-
-  const loadWallet = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await walletApi.getWallet(uid);
-      if (!res.success && res.error?.includes('not found')) {
-        const address = `0x${Math.random().toString(16).substr(2, 40)}`;
-        const createRes = await walletApi.createWallet(uid!, address);
-        if (createRes.success) {
-          setWallet(createRes.data);
-        }
-      }
-      if (res.success && res.data) {
-        res.data.balanceWei = convertToETH(res.data.balanceWei);
-        setWallet(res.data);
-      } else {
-        throw new Error(res.error || 'Failed to load wallet');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    }
-    setLoading(false);
-  };
 
   const loadAwards = async () => {
     try {
@@ -67,7 +44,7 @@ export default function WalletPage() {
     try {
       const res = await walletApi.creditWallet(uid, amount, `Added $${amount}`);
       if (res.success) {
-        await loadWallet();
+        await reload();
       } else {
         throw new Error(res.error || 'Failed to add funds');
       }
@@ -81,7 +58,8 @@ export default function WalletPage() {
     try {
       const res = await walletApi.claimAward(uid, eventId);
       if (res.success) {
-        await loadWallet();
+        await reload();
+        await loadAwards();
         toast.success('Successfully claim award');
       } else {
         throw Error(res.error || 'Failed to claim award');
@@ -124,7 +102,7 @@ export default function WalletPage() {
 
           <button
             onClick={() => {
-              loadWallet();
+              reload();
               loadAwards();
             }}
             className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl"
@@ -162,7 +140,7 @@ export default function WalletPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <WalletBalance
-              balance={wallet?.balanceWei || 0}
+              balance={wallet?.balance_wei || 0}
               spend={spend}
               onCredit={handleCredit}
             />

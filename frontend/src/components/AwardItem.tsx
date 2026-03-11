@@ -19,20 +19,24 @@ export default function AwardItem({ award, onClaim }: AwardItemProps) {
       setLoader(false);
     }
   };
-  const isAvailableMore = ()=>{
-    return award.max_per_day === award.today_count;
-  }
+  const isUnavailable = () => {
+    console.log(award.remaining);
+    return !award.is_available;
+  };
   return (
     <>
       <button
         onClick={onClaimWithLoader}
-        className={`w-full bg-slate-700 hover:bg-slate-600 p-3 rounded-xl text-left ${isAvailableMore() ? 'opacity-50 cursor-not-allowed' : ''}`}
-        disabled={loader || isAvailableMore()}
+        className={`w-full bg-slate-700 hover:bg-slate-600 p-3 rounded-xl text-left ${isUnavailable() ? 'opacity-50 cursor-not-allowed' : ''}`}
+        disabled={loader || isUnavailable()}
       >
         <div className="font-semibold">{award.event_id}</div>
         <div className="text-cyan-400">+${award.reward_amount}</div>
-        <div className="text-cyan-400">{award.is_available ? 'Available' : 'Not Available'}</div>
-        <div className="text-cyan-400">Remaining: {award.remaining ?? '0'}</div>
+        <div className="text-cyan-400">
+          {award.is_available ? 'Available' : 'Not Available'}
+        </div>
+        <div className="text-cyan-400">Remaining: {award.remaining === null ? 'Unlimited' : award.remaining}</div>
+        <div className="text-cyan-400">Max per day: {award.max_per_day === 0 ? 'Unlimited' : award.max_per_day}</div>
         {loader && <RefreshCw className="w-4 h-4 animate-spin" />}
       </button>
     </>
