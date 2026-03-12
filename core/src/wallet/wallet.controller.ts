@@ -3,14 +3,22 @@ import { AwardDto } from './dto/spend.dto';
 import { AwardCoreError } from '@/utils/errors/award-core.error';
 import { WalletService, WalletSnapshot } from './wallet.service';
 import { AwardService } from '@/award/award.service';
-import { ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 
 @Controller('wallet')
 export class WalletController {
-  constructor(private readonly walletService: WalletService,
+  constructor(
+    private readonly walletService: WalletService,
     private readonly awardService: AwardService
   ) {}
 
+  @ApiBearerAuth()
   @Post('spend')
   @ApiOperation({
     summary: 'Spend (debit) tokens from user wallet',
@@ -24,8 +32,7 @@ export class WalletController {
     status: 400,
     description: 'AwardCoreError / validation error',
   })
-  async spend(
-    @Body() body:AwardDto) {
+  async spend(@Body() body: AwardDto) {
     try {
       return await this.awardService.spend(body.uid, body.amount, body.label);
     } catch (e) {
@@ -36,6 +43,7 @@ export class WalletController {
     }
   }
 
+  @ApiBearerAuth()
   @Get(':uid')
   @ApiOperation({
     summary: 'Get wallet snapshot (address, balance, last 10 transactions)',
@@ -46,9 +54,9 @@ export class WalletController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Wallet snapshot'
+    description: 'Wallet snapshot',
   })
   async getWallet(@Param('uid') uuid: string): Promise<WalletSnapshot> {
-   return await this.walletService.getWalletSnapshot(uuid);
+    return await this.walletService.getWalletSnapshot(uuid);
   }
 }
