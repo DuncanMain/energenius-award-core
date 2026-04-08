@@ -19,9 +19,6 @@ export interface CreateTxLogDto {
 export class TxLogRepository {
   constructor(private prisma: PrismaService) {}
 
-  /**
-   * Kreiraj novi tx log
-   */
   async create(data: CreateTxLogDto) {
     return this.prisma.txLog.create({
       data: {
@@ -118,5 +115,24 @@ export class TxLogRepository {
       },
       select: { eventId: true },
     });
+  }
+
+  async sumTodayAwardsByUid(
+    uid: string,
+    tx: Prisma.TransactionClient
+  ): Promise<number> {
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const result = await tx.txLog.aggregate({
+      where: {
+        uid,
+        type: 'award',
+        createdAt: { gte: startOfDay },
+      },
+      _sum: { amount: true },
+    });
+
+    return Number(result._sum.amount ?? 0);
   }
 }

@@ -40,7 +40,7 @@ model AwardRule {
 model UserAward {
   id          Int      @id @default(autoincrement())
   uid         String
-  awardRuleId String      @map("award_rule_id")
+  awardRuleId String   @map("award_rule_id")
   count       Int      @default(0)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -51,7 +51,6 @@ model UserAward {
   @@map("user_awards")
 }
 
-// Audit log svih transakcija
 model TxLog {
   id             Int       @id @default(autoincrement())
   uid            String
