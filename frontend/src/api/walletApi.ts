@@ -8,8 +8,8 @@ const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || '/v1').replace(
   ''
 );
 class WalletApi extends BaseApi {
-  async getWallet(uid: string): Promise<ApiResponse<Wallet>> {
-    return this.handleRequest(() => authFetch(`${API_BASE_URL}/wallet/${uid}`));
+  async getWallet(): Promise<ApiResponse<Wallet>> {
+    return this.handleRequest(() => authFetch(`${API_BASE_URL}/wallet`));
   }
 
   async createWallet(
@@ -62,9 +62,9 @@ class WalletApi extends BaseApi {
   async getAwards(): Promise<ApiResponse<AwardsResponse[]>> {
     return this.handleRequest(() => authFetch(`/award`));
   }
-  async getAvailableAwards(uid: string): Promise<ApiResponse<AwardsResponse[]>> {
+  async getAvailableAwards(): Promise<ApiResponse<AwardsResponse[]>> {
     return this.handleRequest(() =>
-      authFetch(`${API_BASE_URL}/award/available/${uid}`)
+      authFetch(`${API_BASE_URL}/award/available`)
     );
   }
 }

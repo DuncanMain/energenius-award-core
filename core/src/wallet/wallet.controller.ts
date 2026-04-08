@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AwardDto } from './dto/spend.dto';
 import { AwardCoreError } from '@/utils/errors/award-core.error';
 import { WalletService, WalletSnapshot } from './wallet.service';
@@ -7,9 +7,9 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
-  ApiParam,
   ApiResponse,
 } from '@nestjs/swagger';
+import { GetUser } from '@/auth/decorators/get-user.decorator';
 
 @Controller('wallet')
 export class WalletController {
@@ -44,19 +44,15 @@ export class WalletController {
   }
 
   @ApiBearerAuth()
-  @Get(':uid')
+  @Get()
   @ApiOperation({
     summary: 'Get wallet snapshot (address, balance, last 10 transactions)',
-  })
-  @ApiParam({
-    name: 'uid',
-    description: 'UID user',
   })
   @ApiResponse({
     status: 200,
     description: 'Wallet snapshot',
   })
-  async getWallet(@Param('uid') uuid: string): Promise<WalletSnapshot> {
-    return await this.walletService.getWalletSnapshot(uuid);
+  async getWallet(@GetUser('sub') uid: string): Promise<WalletSnapshot> {
+    return await this.walletService.getWalletSnapshot(uid);
   }
 }

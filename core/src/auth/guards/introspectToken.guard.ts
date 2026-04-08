@@ -34,7 +34,6 @@ export class IntrospectionGuard {
       const introspectUrl = this.configService.get<string>(
         'TOKEN_INTROSPECTION_URL'
       );
-      console.log(introspectUrl);
       if (!introspectUrl)
         throw new Error('TOKEN_INTROSPECTION_URL is not defined');
 
@@ -52,7 +51,7 @@ export class IntrospectionGuard {
 
       introspectData = await response.json();
     } catch (err) {
-        console.log(err);
+      console.log(err);
       throw new UnauthorizedException('Token introspection failed');
     }
 

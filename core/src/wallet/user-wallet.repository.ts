@@ -18,13 +18,17 @@ export class UserWalletRepository {
    * Create or update wallet for a user (upsert)
    */
   async upsert(uid: string, address: string) {
-    return this.prisma.userWallet.upsert({
-      where: { uid },
-      update: {},
-      create: { uid, address },
-    });
+    return this.prisma.$transaction(
+      async tx => {
+        const existing = await tx.userWallet.findUnique({ where: { uid } });
+        if (existing) return existing;
+        return tx.userWallet.create({ data: { uid, address } });
+      },
+      {
+        isolationLevel: 'Serializable',
+      }
+    );
   }
-
   /**
    * Create wallet for a user (only if it doesn't exist)
    */

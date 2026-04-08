@@ -15,6 +15,7 @@ import { AwardRepository } from './award.repository';
 import { AwardTableService } from './award-table.service';
 import { ConfigService } from '@nestjs/config';
 import { AwardRuleId } from '@prisma/client';
+import { AuthService } from '@/auth/auth.service';
 
 @Injectable()
 export class AwardService {
@@ -25,20 +26,27 @@ export class AwardService {
     private userWalletRepo: UserWalletRepository,
     private userAwardRepo: AwardRepository,
     private txLogRepo: TxLogRepository,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private readonly authService: AuthService
   ) {}
 
   async awardEvent(
     uid: string,
     eventId: string,
-    opts?: { timestamp?: string; source?: string }
+    opts: { timestamp?: string; source?: string; componentToken: string }
   ) {
     let eventTimestamp: Date | null = null;
 
-    const rule = await this.awardTableService.getAwardRuleById(eventId);
+    const rule = await this.awardTableService.getAwardRuleByEventId(eventId);
     if (!rule) {
       throw new NotFoundException(`Unknown eventId: ${eventId}`);
     }
+
+    const userValid = await this.authService.userExists(
+      uid,
+      opts.componentToken
+    );
+    if (!userValid) throw new NotFoundException(`Unknown uid: ${uid}`);
 
     const address = deriveAddress(uid);
     const amountWei = parseUnits(rule.rewardAmount.toString(), 18);
@@ -204,7 +212,7 @@ export class AwardService {
           is_available: userLimitOk && dayLimitOk,
         };
       });
-    } catch (err) {
+    } catch (err: any) {
       throw new InternalServerErrorException(
         'Failed to get available awards for user',
         err.message

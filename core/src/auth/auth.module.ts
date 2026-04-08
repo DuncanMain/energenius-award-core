@@ -16,5 +16,6 @@ import { AuthService } from './auth.service';
     RefreshTokenStrategy,
     AccessTokenGuard,
   ],
+  exports: [AuthService],
 })
 export class AuthModule {}
