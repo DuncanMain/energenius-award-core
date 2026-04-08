@@ -9,16 +9,17 @@ import { AwardRuleRepository } from './repositories/award-rule.repository';
 import { TxLogRepository } from './repositories/tx-log.repository';
 import { ConfigModule } from '@nestjs/config';
 import { UserWalletRepository } from '@/wallet/user-wallet.repository';
+import { AuthModule } from '@/auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, ChainModule, ConfigModule],
+  imports: [PrismaModule, ChainModule, ConfigModule, AuthModule],
   providers: [
     AwardService,
     AwardTableService,
     UserWalletRepository,
     AwardRepository,
     TxLogRepository,
-    AwardRuleRepository
+    AwardRuleRepository,
   ],
   controllers: [AwardController],
   exports: [
@@ -27,7 +28,7 @@ import { UserWalletRepository } from '@/wallet/user-wallet.repository';
     UserWalletRepository,
     AwardRepository,
     TxLogRepository,
-    AwardRuleRepository
+    AwardRuleRepository,
   ],
 })
 export class AwardModule {}

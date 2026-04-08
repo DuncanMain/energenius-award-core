@@ -6,6 +6,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+      args:
+        DATABASE_URL: ${DATABASE_URL}
     command: npm run start:dev
     working_dir: /app
     volumes:

@@ -7,9 +7,9 @@ import { AwardModule } from '@/award/award.module';
 import { PrismaModule } from '@/prisma/prisma.module';
 
 @Module({
-  imports: [ChainModule,AwardModule,PrismaModule],
-  providers: [WalletService,UserWalletRepository],
-  exports: [WalletService,UserWalletRepository],
+  imports: [ChainModule, AwardModule, PrismaModule],
+  providers: [WalletService, UserWalletRepository],
+  exports: [WalletService, UserWalletRepository],
   controllers: [WalletController],
 })
 export class WalletModule {}

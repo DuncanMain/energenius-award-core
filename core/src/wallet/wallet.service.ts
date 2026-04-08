@@ -35,7 +35,6 @@ export class WalletService {
     if (!uid || uid.trim() === '') {
       throw new Error('uid is required');
     }
-
     // Generiši adresu
     const address = deriveAddress(uid);
 
@@ -63,6 +62,6 @@ export class WalletService {
       address,
       balance_wei: balWei.toString(),
       history,
-    };  
+    };
   }
 }

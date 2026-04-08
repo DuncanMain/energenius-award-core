@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { AwardDto } from './dto/spend.dto';
 import { AwardCoreError } from '@/utils/errors/award-core.error';
 import { WalletService, WalletSnapshot } from './wallet.service';
@@ -7,7 +15,6 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
-  ApiParam,
   ApiResponse,
 } from '@nestjs/swagger';
 
@@ -44,19 +51,22 @@ export class WalletController {
   }
 
   @ApiBearerAuth()
-  @Get(':uid')
+  @Get()
   @ApiOperation({
     summary: 'Get wallet snapshot (address, balance, last 10 transactions)',
-  })
-  @ApiParam({
-    name: 'uid',
-    description: 'UID user',
   })
   @ApiResponse({
     status: 200,
     description: 'Wallet snapshot',
   })
-  async getWallet(@Param('uid') uuid: string): Promise<WalletSnapshot> {
-    return await this.walletService.getWalletSnapshot(uuid);
+  async getWallet(@Req() req: Request): Promise<WalletSnapshot> {
+    const uid = (req as any).user?.sub;
+    if (!uid) {
+      throw new HttpException(
+        'Unable to extract uid from token',
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+    return await this.walletService.getWalletSnapshot(uid);
   }
 }
