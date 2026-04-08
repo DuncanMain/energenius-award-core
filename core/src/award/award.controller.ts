@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   UseGuards,
-  UnauthorizedException,
   Headers,
 } from '@nestjs/common';
 import { AwardService } from './award.service';
