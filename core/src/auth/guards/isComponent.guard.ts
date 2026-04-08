@@ -10,13 +10,13 @@ export class IsComponentGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
-    console.log(user);
     const roles = user.realm_access?.roles || [];
-    console.log(roles);
+
     if (roles.includes('component_role')) return true;
     if (!user.email && !user.sid && user.azp) {
       return true;
     }
+
     throw new ForbiddenException('Only components can call this.');
   }
 }
