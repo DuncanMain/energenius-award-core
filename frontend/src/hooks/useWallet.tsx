@@ -14,17 +14,17 @@ export function useWallet(uid: string | null) {
     if (!uid) return;
     setLoading(true);
     try {
-      const res = await walletApi.getWallet(uid);
+      const res = await walletApi.getWallet();
       if (res.success && res.data) {
-          const data = res.data;
-          const balance = Number(convertToETH(data.balance_wei));
-          data.balance_wei = balance.toString();
-          setWallet(data);
-          if (prevBalance.current && balance > prevBalance.current) {
-            const diff = balance - prevBalance.current;
-            toast.success(`Balance increased by $${diff}`);
-          }
-          prevBalance.current = balance;
+        const data = res.data;
+        const balance = Number(convertToETH(data.balance_wei));
+        data.balance_wei = balance.toString();
+        setWallet(data);
+        if (prevBalance.current && balance > prevBalance.current) {
+          const diff = balance - prevBalance.current;
+          toast.success(`Balance increased by $${diff}`);
+        }
+        prevBalance.current = balance;
       } else {
         console.log(res);
         authStorage.clearAuth();

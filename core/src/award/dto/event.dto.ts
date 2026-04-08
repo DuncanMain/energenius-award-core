@@ -6,7 +6,7 @@ export class EventDto {
   @IsString()
   uid: string;
 
-  @ApiProperty({name:"event_id"})
+  @ApiProperty({ name: 'event_id' })
   @IsString()
   @Expose({ name: 'event_id' })
   eventId: string;

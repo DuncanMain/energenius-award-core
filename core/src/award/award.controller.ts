@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Get, Param, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  HttpCode,
+  UseGuards,
+  UnauthorizedException,
+  Headers,
+} from '@nestjs/common';
 import { AwardService } from './award.service';
 import { EventDto } from './dto/event.dto';
 import { AwardTableService } from './award-table.service';
@@ -6,10 +15,12 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
-  ApiParam,
   ApiResponse,
 } from '@nestjs/swagger';
 import { AwardRule } from '@prisma/client';
+import { IsComponentGuard } from '@/auth/guards/isComponent.guard';
+import { IntrospectionGuard } from '@/auth/guards/introspectToken.guard';
+import { GetUser } from '@/auth/decorators/get-user.decorator';
 
 @Controller('award')
 export class AwardController {
@@ -43,16 +54,19 @@ export class AwardController {
       },
     },
   })
+  @UseGuards(IntrospectionGuard, IsComponentGuard)
   async awardEvent(
     @Body()
-    body: EventDto
+    body: EventDto,
+    @Headers('authorization') authorization: string
   ) {
+    const componentToken = (authorization ?? '').replace('Bearer ', '');
     return await this.awardService.awardEvent(body.uid, body.eventId, {
       timestamp: body.timestamp,
       source: body.source,
+      componentToken,
     });
   }
-
   @ApiBearerAuth()
   @Get('/')
   @ApiOperation({ summary: 'List all award rules' })
@@ -62,14 +76,13 @@ export class AwardController {
   }
 
   @ApiBearerAuth()
-  @Get('available/:uid')
+  @Get('available')
   @ApiOperation({ summary: 'Get available awards for a specific user' })
-  @ApiParam({ name: 'uid', description: 'UID user' })
   @ApiResponse({
     status: 200,
     description: 'List of available awards for the user',
   })
-  async getAvailable(@Param('uid') uid: string) {
+  async getAvailable(@GetUser('sub') uid: string) {
     return await this.awardService.getAvailableAwardsForUser(uid);
   }
 }

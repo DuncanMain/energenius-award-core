@@ -36,7 +36,7 @@ export default function WalletPage() {
 
   const loadAwards = async () => {
     try {
-      const res = await walletApi.getAvailableAwards(uid);
+      const res = await walletApi.getAvailableAwards();
 
       if (res.data && res.success) {
         setAwards(res.data);

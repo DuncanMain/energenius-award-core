@@ -7,11 +7,15 @@ import { AuthDto } from './dto/login-auth.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly nexusUrl: string;
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private configService: ConfigService
-  ) {}
+  ) {
+    this.nexusUrl = this.configService.get<string>('NEXUS_URL')!;
+  }
 
   async signIn(data: AuthDto): Promise<any> {
     const user = await this.usersService.findOneByEmail(data.email);
@@ -105,5 +109,19 @@ export class AuthService {
     const tokens = await this.getTokens(user.id, user.email);
     await this.updateRefreshToken(user.id, tokens.refreshToken);
     return tokens;
+  }
+
+  async userExists(uid: string, componentToken: string): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `${this.nexusUrl}/auth/users/${uid}/exists`,
+        {
+          headers: { Authorization: `Bearer ${componentToken}` },
+        }
+      );
+      return response.ok;
+    } catch {
+      return false;
+    }
   }
 }
