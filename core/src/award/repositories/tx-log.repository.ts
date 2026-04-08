@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { dayjs } from '@/utils/dayjs';
 
 export interface CreateTxLogDto {
   uid: string;
@@ -121,8 +122,7 @@ export class TxLogRepository {
     uid: string,
     tx: Prisma.TransactionClient
   ): Promise<number> {
-    const startOfDay = new Date();
-    startOfDay.setUTCHours(0, 0, 0, 0);
+    const startOfDay = dayjs.utc().startOf('day').toDate();
 
     const result = await tx.txLog.aggregate({
       where: {
