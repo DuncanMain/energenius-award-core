@@ -16,6 +16,10 @@ import { AwardTableService } from './award-table.service';
 import { ConfigService } from '@nestjs/config';
 import { AwardRuleId } from '@prisma/client';
 import { AuthService } from '@/auth/auth.service';
+import {
+  DAILY_TOKEN_CAP,
+  EXEMPT_AWARD_EVENTS,
+} from '@/utils/constants/award.constants';
 
 @Injectable()
 export class AwardService {
@@ -68,6 +72,15 @@ export class AwardService {
         if (todayCount >= maxDay) {
           throw new ForbiddenException(
             'maxPerDay reached for this award today'
+          );
+        }
+      }
+
+      if (!EXEMPT_AWARD_EVENTS.includes(rule.eventId)) {
+        const todayTotal = await this.txLogRepo.sumTodayAwardsByUid(uid, tx);
+        if (todayTotal + rule.rewardAmount > DAILY_TOKEN_CAP) {
+          throw new ForbiddenException(
+            'User has earned the maximum amount of tokens for today'
           );
         }
       }
