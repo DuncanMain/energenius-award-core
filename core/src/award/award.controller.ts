@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   UseGuards,
-  Req,
   UnauthorizedException,
   Headers,
 } from '@nestjs/common';
@@ -21,6 +20,7 @@ import {
 import { AwardRule } from '@prisma/client';
 import { IsComponentGuard } from '@/auth/guards/isComponent.guard';
 import { IntrospectionGuard } from '@/auth/guards/introspectToken.guard';
+import { GetUser } from '@/auth/decorators/get-user.decorator';
 
 @Controller('award')
 export class AwardController {
@@ -82,11 +82,7 @@ export class AwardController {
     status: 200,
     description: 'List of available awards for the user',
   })
-  async getAvailable(@Req() req: Request) {
-    const uid = (req as any).user?.sub;
-    if (!uid) {
-      throw new UnauthorizedException('Unable to extract uid from token');
-    }
+  async getAvailable(@GetUser('sub') uid: string) {
     return await this.awardService.getAvailableAwardsForUser(uid);
   }
 }

@@ -28,26 +28,18 @@ export class WalletService {
     private txLogRepo: TxLogRepository
   ) {}
 
-  /**
-   * Vraća trenutno stanje wallet-a (Business logika)
-   */
   async getWalletSnapshot(uid: string): Promise<WalletSnapshot> {
     if (!uid || uid.trim() === '') {
       throw new Error('uid is required');
     }
-    // Generiši adresu
     const address = deriveAddress(uid);
 
-    // Repository: osiguraj da wallet postoji
     await this.userWalletRepo.upsert(uid, address);
 
-    // Blockchain: provjeri balans
     const balWei = await this.chainService.balanceOf(address);
 
-    // Repository: izvuci zadnjih 10 transakcija
     const txLogs = await this.txLogRepo.findRecentByUid(uid, 10);
 
-    // Business logika: mapiranje u response format
     const history: WalletHistoryItem[] = txLogs.map(tx => ({
       type: tx.type,
       eventId: tx.eventId ?? null,
