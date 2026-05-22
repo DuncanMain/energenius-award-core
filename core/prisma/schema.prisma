@@ -15,8 +15,12 @@ enum AwardRuleId {
 }
 
 model UserWallet {
-  id        Int      @id @default(autoincrement())
-  uid       String   @unique
+  id Int @id @default(autoincrement())
+
+  //uid will be deprecated in favor of uidNew, but we keep it for backward compatibility with existing data
+  uid    String? @unique
+  uidNew String? @unique @map("uid_new")
+
   address   String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -38,8 +42,12 @@ model AwardRule {
 }
 
 model UserAward {
-  id          Int      @id @default(autoincrement())
-  uid         String
+  id Int @id @default(autoincrement())
+
+  //uid will be deprecated in favor of uidNew, but we keep it for backward compatibility with existing data
+  uid    String?
+  uidNew String? @map("uid_new")
+
   awardRuleId String   @map("award_rule_id")
   count       Int      @default(0)
   createdAt   DateTime @default(now()) @map("created_at")
@@ -48,12 +56,16 @@ model UserAward {
   awardRule AwardRule @relation(fields: [awardRuleId], references: [id])
 
   @@unique([uid, awardRuleId])
+  @@unique([uidNew, awardRuleId])
   @@map("user_awards")
 }
 
 model TxLog {
-  id             Int       @id @default(autoincrement())
-  uid            String
+  id     Int     @id @default(autoincrement())
+  //uid will be deprecated in favor of uidNew, but we keep it for backward compatibility with existing data
+  uid    String?
+  uidNew String? @map("uid_new")
+
   address        String
   type           String
   eventId        String?   @map("event_id")
