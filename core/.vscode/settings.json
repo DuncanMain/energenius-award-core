@@ -19,5 +19,7 @@
   },
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "prisma.pinToPrisma6": true,
+  "js/ts.tsdk.path": "node_modules/typescript/lib"
 }

@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 import { dayjs } from '@/utils/dayjs';
 
 export interface CreateTxLogDto {
-  uid: string;
+  uidNew: string;
   address: string;
   type: 'award' | 'spend';
   eventId?: string | null;
@@ -23,7 +23,7 @@ export class TxLogRepository {
   async create(data: CreateTxLogDto) {
     return this.prisma.txLog.create({
       data: {
-        uid: data.uid,
+        uidNew: data.uidNew,
         address: data.address,
         type: data.type,
         eventId: data.eventId ?? null,
@@ -40,9 +40,9 @@ export class TxLogRepository {
   /**
    * Find recent transactions for a user, ordered by creation date descending
    */
-  async findRecentByUid(uid: string, limit: number = 10) {
+  async findRecentByUid(uidNew: string, limit: number = 10) {
     return this.prisma.txLog.findMany({
-      where: { uid },
+      where: { uidNew },
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
@@ -51,9 +51,9 @@ export class TxLogRepository {
   /**
    * Find all transactions for a user, ordered by creation date descending
    */
-  async findAllByUid(uid: string) {
+  async findAllByUid(uidNew: string) {
     return this.prisma.txLog.findMany({
-      where: { uid },
+      where: { uidNew },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -76,7 +76,7 @@ export class TxLogRepository {
   ) {
     return tx.txLog.create({
       data: {
-        uid: data.uid,
+        uidNew: data.uidNew,
         address: data.address,
         type: data.type,
         eventId: data.eventId ?? null,
@@ -91,7 +91,7 @@ export class TxLogRepository {
   }
 
   async countTodayByUidAndAwardRuleId(
-    uid: string,
+    uidNew: string,
     awardRuleId: string,
     tx: Prisma.TransactionClient
   ) {
@@ -100,17 +100,17 @@ export class TxLogRepository {
 
     return tx.txLog.count({
       where: {
-        uid,
+        uidNew,
         eventId: awardRuleId,
         createdAt: { gte: startOfDay },
       },
     });
   }
 
-  async findTodayByUid(uid: string, startOfDay: Date) {
+  async findTodayByUid(uidNew: string, startOfDay: Date) {
     return this.prisma.txLog.findMany({
       where: {
-        uid,
+        uidNew,
         createdAt: { gte: startOfDay },
         type: 'award',
       },
@@ -119,14 +119,14 @@ export class TxLogRepository {
   }
 
   async sumTodayAwardsByUid(
-    uid: string,
+    uidNew: string,
     tx: Prisma.TransactionClient
   ): Promise<number> {
     const startOfDay = dayjs.utc().startOf('day').toDate();
 
     const result = await tx.txLog.aggregate({
       where: {
-        uid,
+        uidNew: uidNew,
         type: 'award',
         createdAt: { gte: startOfDay },
       },
