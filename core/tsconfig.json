@@ -13,6 +13,7 @@
     "incremental": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "strictPropertyInitialization": false,
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "strictNullChecks": true,
     "noImplicitAny": true,

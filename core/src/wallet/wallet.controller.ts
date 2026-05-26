@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import { AwardDto } from './dto/spend.dto';
 import { AwardCoreError } from '@/utils/errors/award-core.error';
 import { WalletService, WalletSnapshot } from './wallet.service';
@@ -32,9 +32,14 @@ export class WalletController {
     status: 400,
     description: 'AwardCoreError / validation error',
   })
-  async spend(@Body() body: AwardDto) {
+  async spend(
+    @Body() body: AwardDto,
+    @Req() req: any,
+  ) {
     try {
-      return await this.awardService.spend(body.uid, body.amount, body.label);
+      const nexus_user_id = req.user?.nexus_user_id || null;
+
+      return await this.awardService.spend(nexus_user_id, body.amount, body.label);
     } catch (e) {
       if (e instanceof AwardCoreError) {
         return { error: e.code, message: e.message };

@@ -1,0 +1,113 @@
+name: energenius-award-dev
+
+services:
+  core:
+    container_name: energenius-award-core-dev
+    build:
+      context: ./core
+      dockerfile: Dockerfile.dev
+    working_dir: /app
+    command: npm run start:dev
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://${DEV_POSTGRES_USER:-award}:${DEV_POSTGRES_PASSWORD:-award}@db:5432/${DEV_POSTGRES_DB:-award}?schema=public
+      POSTGRES_USER: ${DEV_POSTGRES_USER:-award}
+      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:-award}
+      POSTGRES_DB: ${DEV_POSTGRES_DB:-award}
+      POSTGRES_PORT: 5432
+      APP_ENVIRONMENT: development
+      APP_VERSION: ${DEV_APP_VERSION:-dev}
+      LOG_DESTINATION: ${LOG_DESTINATION:-console}
+      BUGSNAG_API_KEY: ""
+      JWT_ACCESS_SECRET: ${DEV_JWT_ACCESS_SECRET:-dev-access-secret}
+      JWT_REFRESH_SECRET: ${DEV_JWT_REFRESH_SECRET:-dev-refresh-secret}
+      AMOY_RPC_URL: ${DEV_AMOY_RPC_URL:-http://host.docker.internal:8545}
+      CHAIN_ID: ${DEV_CHAIN_ID:-31337}
+      ENCOIN_CONTRACT_ADDRESS: ${DEV_ENCOIN_CONTRACT_ADDRESS:-0x0000000000000000000000000000000000000000}
+      AMOY_PRIVATE_KEY: ${DEV_AMOY_PRIVATE_KEY:-0x59c6995e998f97a5a0044966f09453844f1a87adf9d7a3e7c665680dec2c8943}
+      FILE_STORAGE: /app/storage
+      STATIC_RESOURCES: /app/static
+      NEXUS_URL: ${DEV_NEXUS_URL:-http://nexus-app:3003}
+      TOKEN_INTROSPECTION_URL: ${DEV_TOKEN_INTROSPECTION_URL:-http://nexus-app:3003/auth/token/introspect}
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "${CORE_HOST_PORT:-3001}:3001"
+    volumes:
+      - ./core:/app
+      - core_node_modules:/app/node_modules
+      - core_storage:/app/storage
+      - core_static:/app/static
+    depends_on:
+      db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      dev:
+        aliases:
+          - award-core
+
+  frontend:
+    container_name: energenius-award-frontend-dev
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    working_dir: /app
+    command: npm run dev -- --hostname 0.0.0.0
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: ${DEV_NEXT_PUBLIC_API_URL:-http://localhost:3001/v1}
+      NEXT_PUBLIC_NEXUS_API_URL: ${DEV_NEXT_PUBLIC_NEXUS_API_URL:-http://localhost:3003}
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "${FRONTEND_HOST_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+      - frontend_next:/app/.next
+    depends_on:
+      - core
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      dev:
+        aliases:
+          - award-frontend
+
+  db:
+    container_name: energenius-award-db-dev
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DEV_POSTGRES_USER:-award}
+      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:-award}
+      POSTGRES_DB: ${DEV_POSTGRES_DB:-award}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - award_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      dev:
+        aliases:
+          - award-db
+
+volumes:
+  award_pgdata:
+  core_node_modules:
+  core_storage:
+  core_static:
+  frontend_node_modules:
+  frontend_next:
+
+networks:
+  dev:
+    name: ${DEV_DOCKER_NETWORK:-energenius-dev}
+    driver: bridge
