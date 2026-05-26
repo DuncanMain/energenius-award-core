@@ -5,3 +5,5 @@
 .env.*
 !.env.example
 !.env.*.example
+award_system_db_25_05_2026.sql
+db-backups/
