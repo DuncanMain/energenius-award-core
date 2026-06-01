@@ -8,6 +8,11 @@ export class EventDto {
   @Expose({ name: 'event_id' })
   eventId!: string;
 
+  @ApiProperty({ name: 'target_user_id' })
+  @IsString()
+  @Expose({ name: 'target_user_id' })
+  targetUserId!: string;
+
   @IsOptional()
   @IsString()
   timestamp?: string;
