@@ -35,10 +35,12 @@ export class AwardService {
   ) {}
 
   async awardEvent(
-    uidNew: string,
+    targetUserId: string,
     eventId: string,
     opts: { timestamp?: string; source?: string; componentToken: string }
   ) {
+    const uid = targetUserId;
+
     let eventTimestamp: Date | null = null;
 
     const rule = await this.awardTableService.getAwardRuleByEventId(eventId);
@@ -47,25 +49,25 @@ export class AwardService {
     }
 
     const userValid = await this.authService.userExists(
-      uidNew,
+      uid,
       opts.componentToken
     );
-    if (!userValid) throw new NotFoundException(`Unknown uid: ${uidNew}`);
+    if (!userValid) throw new NotFoundException(`Unknown uid: ${uid}`);
 
-    const address = deriveAddress(uidNew);
+    const address = deriveAddress(uid);
     const amountWei = parseUnits(rule.rewardAmount.toString(), 18);
 
     return await this.prisma.$transaction(async tx => {
       await tx.userWallet.upsert({
-        where: { uidNew },
+        where: { uid },
         update: {},
-        create: { uidNew, address },
+        create: { uid, address },
       });
 
       const maxDay = rule.maxPerDay;
       if (maxDay > 0) {
         const todayCount = await this.txLogRepo.countTodayByUidAndAwardRuleId(
-          uidNew  ,
+          uid,
           eventId,
           tx
         );
@@ -77,7 +79,7 @@ export class AwardService {
       }
 
       if (!EXEMPT_AWARD_EVENTS.includes(rule.eventId)) {
-        const todayTotal = await this.txLogRepo.sumTodayAwardsByUid(uidNew, tx);
+        const todayTotal = await this.txLogRepo.sumTodayAwardsByUid(uid, tx);
         if (todayTotal + rule.rewardAmount > DAILY_TOKEN_CAP) {
           throw new ForbiddenException(
             'User has earned the maximum amount of tokens for today'
@@ -86,7 +88,7 @@ export class AwardService {
       }
 
       const existingAward =
-        await this.userAwardRepo.findByUidAndEventIdWithLock(uidNew, rule.id, tx);
+        await this.userAwardRepo.findByUidAndEventIdWithLock(uid, rule.id, tx);
       const currentCount = existingAward?.count ?? 0;
       const maxUser = rule.maxPerUser;
       const unlimited = maxUser === 0;
@@ -95,16 +97,16 @@ export class AwardService {
         throw new ForbiddenException('maxPerUser reached for this award');
       }
 
-      await this.userAwardRepo.upsertInTransaction(uidNew, rule.id, tx);
+      await this.userAwardRepo.upsertInTransaction(uid, rule.id, tx);
 
       const txHash = await this.chainService.award(address, amountWei);
       const chainId = Number(this.configService.get<string>('CHAIN_ID'));
 
-      await this.userAwardRepo.incrementCountInTransaction(uidNew, rule.id, tx);
+      await this.userAwardRepo.incrementCountInTransaction(uid, rule.id, tx);
 
       await this.txLogRepo.createInTransaction(
         {
-          uidNew,
+          uid,
           address,
           type: 'award',
           eventId,
@@ -127,11 +129,11 @@ export class AwardService {
       };
     });
   }
-  async spend(uidNew: AwardRuleId, amountEnc: bigint, label?: string) {
-    const address = deriveAddress(uidNew);
+  async spend(uid: AwardRuleId, amountEnc: bigint, label?: string) {
+    const address = deriveAddress(uid);
     const chainId = this.chainService.getChainId();
 
-    await this.userWalletRepo.upsert(uidNew, address);
+    await this.userWalletRepo.upsert(uid, address);
 
     const amountWei = parseUnits(amountEnc.toString(), 18);
     const balanceWei = await this.chainService.balanceOf(address);
@@ -149,7 +151,7 @@ export class AwardService {
 
       await this.txLogRepo.createInTransaction(
         {
-          uidNew,
+          uid,
           address,
           type: 'spend',
           eventId: null,

@@ -6,7 +6,6 @@ import {
   HttpCode,
   UseGuards,
   Headers,
-  Req,
 } from '@nestjs/common';
 import { AwardService } from './award.service';
 import { EventDto } from './dto/event.dto';
@@ -57,13 +56,12 @@ export class AwardController {
   @UseGuards(IntrospectionGuard, IsComponentGuard)
   async awardEvent(
     @Body() body: EventDto,
-    @Headers('authorization') authorization: string,
-    @Req() req: any
+    @Headers('authorization') authorization: string
   ) {
     const componentToken = (authorization ?? '').replace('Bearer ', '');
-    const nexusUid = req.user?.nexus_user_id || null;
-    
-    return await this.awardService.awardEvent(nexusUid, body.eventId, {
+    const targetUserId = body.targetUserId;
+
+    return await this.awardService.awardEvent(targetUserId, body.eventId, {
       timestamp: body.timestamp,
       source: body.source,
       componentToken,

@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 import { dayjs } from '@/utils/dayjs';
 
 export interface CreateTxLogDto {
-  uidNew: string;
+  uid: string;
   address: string;
   type: 'award' | 'spend';
   eventId?: string | null;
@@ -23,7 +23,7 @@ export class TxLogRepository {
   async create(data: CreateTxLogDto) {
     return this.prisma.txLog.create({
       data: {
-        uidNew: data.uidNew,
+        uid: data.uid,
         address: data.address,
         type: data.type,
         eventId: data.eventId ?? null,
@@ -76,7 +76,7 @@ export class TxLogRepository {
   ) {
     return tx.txLog.create({
       data: {
-        uidNew: data.uidNew,
+        uid: data.uid,
         address: data.address,
         type: data.type,
         eventId: data.eventId ?? null,
