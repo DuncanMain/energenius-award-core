@@ -28,8 +28,8 @@ services:
       AMOY_PRIVATE_KEY: ${DEV_AMOY_PRIVATE_KEY:-0x59c6995e998f97a5a0044966f09453844f1a87adf9d7a3e7c665680dec2c8943}
       FILE_STORAGE: /app/storage
       STATIC_RESOURCES: /app/static
-      NEXUS_URL: ${DEV_NEXUS_URL:-http://nexus-app:3003}
-      TOKEN_INTROSPECTION_URL: ${DEV_TOKEN_INTROSPECTION_URL:-http://nexus-app:3003/auth/token/introspect}
+      NEXUS_URL: ${DEV_NEXUS_URL:-http://host.docker.internal:3003}
+      TOKEN_INTROSPECTION_URL: ${DEV_TOKEN_INTROSPECTION_URL:-http://host.docker.internal:3003/auth/token/introspect}
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
     ports:
