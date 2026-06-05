@@ -32,14 +32,15 @@ export class WalletController {
     status: 400,
     description: 'AwardCoreError / validation error',
   })
-  async spend(
-    @Body() body: AwardDto,
-    @Req() req: any,
-  ) {
+  async spend(@Body() body: AwardDto, @Req() req: any) {
     try {
       const nexus_user_id = req.user?.nexus_user_id || null;
 
-      return await this.awardService.spend(nexus_user_id, body.amount, body.label);
+      return await this.awardService.spend(
+        nexus_user_id,
+        body.amount,
+        body.label
+      );
     } catch (e) {
       if (e instanceof AwardCoreError) {
         return { error: e.code, message: e.message };
@@ -57,7 +58,9 @@ export class WalletController {
     status: 200,
     description: 'Wallet snapshot',
   })
-  async getWallet(@GetUser('sub') uid: string): Promise<WalletSnapshot> {
+  async getWallet(
+    @GetUser('nexus_user_id') uid: string
+  ): Promise<WalletSnapshot> {
     return await this.walletService.getWalletSnapshot(uid);
   }
 }

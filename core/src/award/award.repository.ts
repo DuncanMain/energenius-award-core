@@ -6,75 +6,75 @@ import { Prisma } from '@prisma/client';
 export class AwardRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findByUidAndEventId(uidNew: string, awardRuleId: string) {
+  async findByUidAndEventId(uid: string, awardRuleId: string) {
     return this.prisma.userAward.findUnique({
       where: {
-        uidNew_awardRuleId: { 
-          uidNew: uidNew, 
-          awardRuleId: awardRuleId 
+        uid_awardRuleId: {
+          uid: uid,
+          awardRuleId: awardRuleId,
         },
       },
     });
   }
-  async findAllByUid(uidNew: string) {
+  async findAllByUid(uid: string) {
     return this.prisma.userAward.findMany({
-      where: { uidNew },
+      where: { uid },
     });
   }
 
-  async upsert(uidNew: string, awardRuleId: string) {
+  async upsert(uid: string, awardRuleId: string) {
     return this.prisma.userAward.upsert({
-      where: { uidNew_awardRuleId: { uidNew, awardRuleId } },
+      where: { uid_awardRuleId: { uid, awardRuleId } },
       update: {},
-      create: { uidNew, awardRuleId, count: 0 },
+      create: { uid, awardRuleId, count: 0 },
     });
   }
 
-  async incrementCount(uidNew: string, awardRuleId: string) {
+  async incrementCount(uid: string, awardRuleId: string) {
     return this.prisma.userAward.update({
-      where: { uidNew_awardRuleId: { uidNew, awardRuleId } },
+      where: { uid_awardRuleId: { uid, awardRuleId } },
       data: { count: { increment: 1 } },
     });
   }
 
   async findByUidAndEventIdWithLock(
-    uidNew: string,
+    uid: string,
     awardRuleId: string,
     tx: Prisma.TransactionClient
   ) {
     return tx.userAward.findUnique({
-      where: { 
-        uidNew_awardRuleId: { 
-          uidNew: uidNew, 
-          awardRuleId 
-        } 
+      where: {
+        uid_awardRuleId: {
+          uid: uid,
+          awardRuleId,
+        },
       },
     });
   }
 
   async upsertInTransaction(
-    uidNew: string,
+    uid: string,
     awardRuleId: string,
     tx: Prisma.TransactionClient
   ) {
     return tx.userAward.upsert({
-      where: { uidNew_awardRuleId: { uidNew, awardRuleId } },
+      where: { uid_awardRuleId: { uid, awardRuleId } },
       update: {},
-      create: { uidNew, awardRuleId, count: 0 },
+      create: { uid, awardRuleId, count: 0 },
     });
   }
 
   async incrementCountInTransaction(
-    uidNew: string,
+    uid: string,
     awardRuleId: string,
     tx: Prisma.TransactionClient
   ) {
     return tx.userAward.update({
-      where: { 
-        uidNew_awardRuleId: { 
-          uidNew: uidNew,
-          awardRuleId: awardRuleId 
-        } 
+      where: {
+        uid_awardRuleId: {
+          uid: uid,
+          awardRuleId: awardRuleId,
+        },
       },
       data: { count: { increment: 1 } },
     });
