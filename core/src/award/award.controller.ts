@@ -82,7 +82,7 @@ export class AwardController {
     status: 200,
     description: 'List of available awards for the user',
   })
-  async getAvailable(@GetUser('sub') uid: string) {
+  async getAvailable(@GetUser('nexus_user_id') uid: string) {
     return await this.awardService.getAvailableAwardsForUser(uid);
   }
 }

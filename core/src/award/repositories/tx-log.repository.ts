@@ -40,9 +40,9 @@ export class TxLogRepository {
   /**
    * Find recent transactions for a user, ordered by creation date descending
    */
-  async findRecentByUid(uidNew: string, limit: number = 10) {
+  async findRecentByUid(uid: string, limit: number = 10) {
     return this.prisma.txLog.findMany({
-      where: { uidNew },
+      where: { uid },
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
@@ -51,9 +51,9 @@ export class TxLogRepository {
   /**
    * Find all transactions for a user, ordered by creation date descending
    */
-  async findAllByUid(uidNew: string) {
+  async findAllByUid(uid: string) {
     return this.prisma.txLog.findMany({
-      where: { uidNew },
+      where: { uid },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -91,7 +91,7 @@ export class TxLogRepository {
   }
 
   async countTodayByUidAndAwardRuleId(
-    uidNew: string,
+    uid: string,
     awardRuleId: string,
     tx: Prisma.TransactionClient
   ) {
@@ -100,17 +100,17 @@ export class TxLogRepository {
 
     return tx.txLog.count({
       where: {
-        uidNew,
+        uid,
         eventId: awardRuleId,
         createdAt: { gte: startOfDay },
       },
     });
   }
 
-  async findTodayByUid(uidNew: string, startOfDay: Date) {
+  async findTodayByUid(uid: string, startOfDay: Date) {
     return this.prisma.txLog.findMany({
       where: {
-        uidNew,
+        uid,
         createdAt: { gte: startOfDay },
         type: 'award',
       },
@@ -119,14 +119,14 @@ export class TxLogRepository {
   }
 
   async sumTodayAwardsByUid(
-    uidNew: string,
+    uid: string,
     tx: Prisma.TransactionClient
   ): Promise<number> {
     const startOfDay = dayjs.utc().startOf('day').toDate();
 
     const result = await tx.txLog.aggregate({
       where: {
-        uidNew: uidNew,
+        uid: uid,
         type: 'award',
         createdAt: { gte: startOfDay },
       },
