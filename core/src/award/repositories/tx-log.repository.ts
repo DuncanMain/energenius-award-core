@@ -14,6 +14,11 @@ export interface CreateTxLogDto {
   chainId: number;
   eventTimestamp?: Date | null;
   source?: string | null;
+  blockNumber?: bigint | null;
+  blockHash?: string | null;
+  logIndex?: number | null;
+  confirmedAt?: Date | null;
+  chainOperationId?: string | null;
 }
 
 @Injectable()
@@ -33,6 +38,11 @@ export class TxLogRepository {
         chainId: data.chainId,
         eventTimestamp: data.eventTimestamp ?? null,
         source: data.source ?? null,
+        blockNumber: data.blockNumber ?? null,
+        blockHash: data.blockHash ?? null,
+        logIndex: data.logIndex ?? null,
+        confirmedAt: data.confirmedAt ?? null,
+        chainOperationId: data.chainOperationId ?? null,
       },
     });
   }
@@ -86,6 +96,11 @@ export class TxLogRepository {
         chainId: data.chainId,
         eventTimestamp: data.eventTimestamp ?? null,
         source: data.source ?? null,
+        blockNumber: data.blockNumber ?? null,
+        blockHash: data.blockHash ?? null,
+        logIndex: data.logIndex ?? null,
+        confirmedAt: data.confirmedAt ?? null,
+        chainOperationId: data.chainOperationId ?? null,
       },
     });
   }

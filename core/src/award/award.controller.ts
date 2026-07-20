@@ -6,6 +6,7 @@ import {
   HttpCode,
   UseGuards,
   Headers,
+  Req,
 } from '@nestjs/common';
 import { AwardService } from './award.service';
 import { EventDto } from './dto/event.dto';
@@ -56,16 +57,31 @@ export class AwardController {
   @UseGuards(IntrospectionGuard, IsComponentGuard)
   async awardEvent(
     @Body() body: EventDto,
-    @Headers('authorization') authorization: string
+    @Headers('authorization') authorization: string,
+    @Req() request: any
   ) {
     const componentToken = (authorization ?? '').replace('Bearer ', '');
     const targetUserId = body.targetUserId;
 
-    return await this.awardService.awardEvent(targetUserId, body.eventId, {
-      timestamp: body.timestamp,
-      source: body.source,
-      componentToken,
-    });
+    const componentIdentity =
+      request.user?.azp ?? request.user?.client_id ?? null;
+    try {
+      return await this.awardService.awardEvent(targetUserId, body.eventId, {
+        timestamp: body.timestamp,
+        source: body.source,
+        componentToken,
+        componentIdentity,
+      });
+    } catch (error) {
+      await this.awardService.recordRejectedAward({
+        componentIdentity,
+        targetUserId,
+        eventId: body.eventId,
+        timestamp: body.timestamp,
+        error,
+      });
+      throw error;
+    }
   }
   @ApiBearerAuth()
   @Get('/')

@@ -22,7 +22,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prepare": "command -v husky >/dev/null 2>&1 && husky install || true",
+    "prepare": "husky",
+    "postinstall": "prisma generate",
     "prisma:generate": "npx prisma generate"
   },
   "dependencies": {
@@ -124,6 +125,9 @@
       "<rootDir>/node_modules/",
       "<rootDir>/prisma/",
       "<rootDir>/test/"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/dist/"
     ]
   }
 }

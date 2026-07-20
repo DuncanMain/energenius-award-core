@@ -14,9 +14,13 @@ import { AwardModule } from './award/award.module';
 import { ChainModule } from './chain/chain.module';
 import { WalletModule } from './wallet/wallet.module';
 import { IntrospectionGuard } from './auth/guards/introspectToken.guard';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ReconciliationModule } from './reconciliation/reconciliation.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     LoggerModule,
@@ -28,8 +32,10 @@ import { IntrospectionGuard } from './auth/guards/introspectToken.guard';
     AwardModule,
     ChainModule,
     WalletModule,
+    ReconciliationModule,
+    AdminModule,
   ],
   controllers: [AppController],
-  providers: [AppService, ConsoleLogger,IntrospectionGuard],
+  providers: [AppService, ConsoleLogger, IntrospectionGuard],
 })
 export class AppModule {}

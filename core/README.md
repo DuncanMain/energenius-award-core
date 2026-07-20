@@ -200,3 +200,69 @@ Defined in `.github/workflows/development.yaml`.
 ## 📜 License
 
 MIT © 2025 \[Your Name or Organization]
+
+# Award Core operations
+
+## Backward compatibility
+
+The existing partner endpoints, request bodies, authentication scheme, and
+successful response fields are unchanged. Award and spend execution now use a
+durable internal chain-operation state machine and short database transactions.
+
+## Database migration
+
+Before deploying this version, apply the checked-in Prisma migration:
+
+```sh
+npx prisma migrate deploy
+```
+
+The migration adds chain-operation recovery, chain sync cursors, transaction
+confirmation metadata, locally authorised Nexus administrators, and admin audit
+logging. It does not rename or remove partner-facing data fields.
+
+## Reconciliation configuration
+
+- `CHAIN_SYNC_ENABLED`: set to `false` to disable the 30-second worker.
+- `CHAIN_CONFIRMATIONS`: confirmations required before indexing; default `5`.
+- `CHAIN_SYNC_CHUNK_SIZE`: maximum blocks per pass; default `1000`.
+- `CHAIN_SYNC_START_BLOCK`: deployed contract block. Default `0`; production
+  should set the deployment block to avoid scanning unrelated chain history.
+
+The synchroniser indexes confirmed ENcoin `Transfer` events, advances an
+idempotent per-chain cursor, repairs submitted operations, and records unmatched
+wallet transfers as reconciled transaction history.
+
+## Admin authentication
+
+Admin endpoints continue to use Nexus bearer-token introspection. Award Core
+then authorises the introspected `sub` (falling back to `nexus_user_id`) against
+its local `admin_principals` table. Nexus itself requires no changes.
+
+Set `ADMIN_NEXUS_SUBJECTS` to a comma-separated list for controlled initial
+bootstrap. Those subjects receive the defined admin permissions locally.
+
+Administrator endpoints cover dashboard overview, wallet lookup, durable
+transactions, rewardable events, token policy, component/source observations,
+manual adjustments, administrator access, audit history, reconciliation,
+system health and contract pause controls. They are grouped under
+`Administration` in Swagger.
+
+The generated OpenAPI document and Swagger UI are available at:
+
+```text
+/v1/api-docs
+```
+
+Select **Authorize** and provide a Nexus bearer token. Successful Nexus login
+alone is not sufficient: its `sub` must be an enabled local administrator with
+the permission documented for the operation. Existing partner endpoints remain
+in their original Swagger groups and retain their existing payloads.
+
+Component/source mappings remain observation-only while
+`component_source_policies.enforce` is false. The administrator API does not
+offer an enforcement switch, preventing accidental partner disruption.
+
+Pause calls require `x-admin-confirmation: PAUSE ENCOIN`; unpause calls require
+`x-admin-confirmation: UNPAUSE ENCOIN`. Ownership transfer and ownership
+renunciation are deliberately not exposed.

@@ -45,7 +45,8 @@ describe('AwardController', () => {
           timestamp: '2026-07-02T10:00:00.000Z',
           source: 'data-beacon-smoke',
         },
-        'Bearer component-token'
+        'Bearer component-token',
+        { user: { azp: 'component-client' } }
       )
     ).resolves.toEqual({ txHash: '0xabc' });
 
@@ -56,6 +57,7 @@ describe('AwardController', () => {
         timestamp: '2026-07-02T10:00:00.000Z',
         source: 'data-beacon-smoke',
         componentToken: 'component-token',
+        componentIdentity: 'component-client',
       }
     );
   });

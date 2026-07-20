@@ -107,3 +107,16 @@ Seed data:
 ```bash
 docker compose -f docker-compose.dev.yml exec core npx ts-node prisma/seed/seed.ts
 ```
+
+## Administrator access and UI preview
+
+Set `DEV_ADMIN_NEXUS_SUBJECTS` to a Nexus user `sub` to bootstrap local administrator access.
+
+For frontend-only design work without Nexus or Core, create the ignored file `frontend/.env.local` with:
+
+```env
+ADMIN_PREVIEW_MODE=true
+NEXT_PUBLIC_ADMIN_PREVIEW_MODE=true
+```
+
+Preview records are fixtures and preview writes are no-ops. Never enable preview mode in production.

@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 import { IntrospectionGuard } from './auth/guards/introspectToken.guard';
 import { AwardModule } from './award/award.module';
 import { WalletModule } from './wallet/wallet.module';
+import { AdminModule } from './admin/admin.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -30,7 +31,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {
-    include: [AwardModule, WalletModule],
+    include: [AwardModule, WalletModule, AdminModule],
   });
   SwaggerModule.setup('v1/api-docs', app, document);
 

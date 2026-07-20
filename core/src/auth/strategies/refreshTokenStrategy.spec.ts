@@ -9,6 +9,7 @@ describe('RefreshTokenStrategy', () => {
   beforeEach(async () => {
     mockConfigService = {
       get: jest.fn().mockReturnValue('mocked-secret'),
+      getOrThrow: jest.fn().mockReturnValue('mocked-secret'),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -26,7 +27,9 @@ describe('RefreshTokenStrategy', () => {
   });
 
   it('should use correct JWT secret', () => {
-    expect(mockConfigService.get).toHaveBeenCalledWith('JWT_REFRESH_SECRET');
+    expect(mockConfigService.getOrThrow).toHaveBeenCalledWith(
+      'JWT_ACCESS_SECRET'
+    );
   });
 
   describe('validate', () => {

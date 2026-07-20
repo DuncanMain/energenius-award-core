@@ -1,64 +1,45 @@
-# Deployment Guide - HTTPS Setup
+# ENERGENIUS Award System deployment
 
-## Prerequisites
-- Domain `energenius-wallet.zentrix.io` pointing to your droplet IP (64.226.90.101)
-- Docker and Docker Compose installed on the server
+## Compatibility
 
-## Step-by-Step Deployment
+This release adds administrator routes and operational persistence. It does not intentionally change existing partner routes, component authentication or partner request bodies. Nexus remains the token issuer and introspection authority. Component/source matching is observation-only by default.
 
-### 1. Upload Files to Server
-Upload the entire project directory to your server (or use git clone).
+## Configuration
 
-### 2. Build Nginx Image
-```bash
-cd /root
-docker build -t energenius-nginx -f nginx/Dockerfile nginx/
+Core retains its existing database, Nexus and blockchain variables and adds:
+
+```env
+ADMIN_NEXUS_SUBJECTS=<initial-admin-nexus-sub>
+CHAIN_SYNC_ENABLED=true
+CHAIN_CONFIRMATIONS=1
+CHAIN_SYNC_CHUNK_SIZE=1000
+CHAIN_SYNC_START_BLOCK=0
 ```
 
-### 3. Initialize SSL Certificate
-```bash
-# Make sure the script is executable
-chmod +x init-letsencrypt.sh
+Frontend server-side proxy:
 
-# Run the initialization script
-./init-letsencrypt.sh
+```env
+CORE_API_URL=https://<award-host>/v1
+NEXUS_API_URL=https://<nexus-host>
+NEXT_PUBLIC_API_URL=https://<award-host>/v1
+NEXT_PUBLIC_NEXUS_API_URL=https://<nexus-host>
 ```
 
-This script will:
-- Create dummy certificates to start nginx
-- Request real Let's Encrypt certificates
-- Configure nginx with SSL
+Never enable `ADMIN_PREVIEW_MODE` or `NEXT_PUBLIC_ADMIN_PREVIEW_MODE` in production.
 
-### 4. Start All Services
-```bash
-docker compose up -d
-```
+## Safe deployment order
 
-### 5. Verify Everything is Running
-```bash
-docker compose ps
-```
+1. Back up PostgreSQL.
+2. Build both images.
+3. Run `npx prisma migrate deploy` using the release Core image and production `DATABASE_URL`.
+4. If preflight reports duplicate reward-event IDs, stop and reconcile those rows before retrying.
+5. Start Core and verify `/v1/admin/system/health` with an authorised administrator.
+6. Start the frontend and verify Nexus login and permission-aware navigation.
+7. Run reconciliation and confirm the cursor advances without unexplained failures.
+8. Test a known existing partner award request without changing its payload.
 
-### 6. Test Your Setup
-- Frontend: https://energenius-wallet.zentrix.io
-- Backend API: https://energenius-wallet.zentrix.io/v1
-- Swagger Docs: https://energenius-wallet.zentrix.io/v1/api-docs
+`ADMIN_NEXUS_SUBJECTS` may be set initially or later followed by a Core restart. Once administrators exist, manage them through the dashboard.
 
-## Certificate Renewal
-The certbot container runs automatically and renews certificates every 12 hours. No manual intervention needed.
+## Rollback
 
-## Troubleshooting
-
-### If certificate generation fails:
-1. Make sure port 80 is open in your firewall
-2. Verify DNS is pointing to your droplet
-3. Check nginx logs: `docker compose logs nginx`
-4. Check certbot logs: `docker compose logs certbot`
-
-### To manually renew certificates:
-```bash
-docker compose run --rm certbot renew
-docker compose exec nginx nginx -s reload
-```
-
-
+Application rollback does not reverse database migrations. These schema changes are additive; retain the migrated database unless a separately reviewed rollback migration is supplied. Never reset production data.

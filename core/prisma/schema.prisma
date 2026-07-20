@@ -14,6 +14,43 @@ enum AwardRuleId {
   TEST_EVENT
 }
 
+enum ChainOperationStatus {
+  RESERVED
+  SUBMITTED
+  CONFIRMED
+  FAILED
+  RECONCILIATION_REQUIRED
+}
+
+enum ChainOperationType {
+  AWARD
+  SPEND
+  ADJUSTMENT_CREDIT
+  ADJUSTMENT_DEBIT
+  CORRECTION_CREDIT
+  CORRECTION_DEBIT
+  REFUND
+}
+
+enum AdminPermissionEnum {
+  ADMIN_DASHBOARD_VIEW
+  ADMIN_WALLET_READ
+  ADMIN_TRANSACTION_READ
+  ADMIN_TRANSACTION_RECONCILE
+  ADMIN_AWARD_RULE_READ
+  ADMIN_AWARD_RULE_CREATE
+  ADMIN_AWARD_RULE_UPDATE
+  ADMIN_AWARD_RULE_DISABLE
+  ADMIN_TOKEN_RULE_MANAGE
+  ADMIN_BALANCE_ADJUST
+  ADMIN_TREASURY_READ
+  ADMIN_CONTRACT_PAUSE
+  ADMIN_CONTRACT_UNPAUSE
+  ADMIN_SYSTEM_HEALTH_READ
+  ADMIN_AUDIT_READ
+  ADMIN_ACCESS_MANAGE
+}
+
 model UserWallet {
   id Int @id @default(autoincrement())
 
@@ -29,16 +66,171 @@ model UserWallet {
 }
 
 model AwardRule {
-  id            String      @id @default(uuid())
-  eventId       String
-  source        String
-  relativeValue Int
-  rewardAmount  Int
-  maxPerUser    Int
-  maxPerDay     Int
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  userAwards    UserAward[]
+  id              String      @id @default(uuid())
+  eventId         String
+  source          String
+  relativeValue   Int
+  rewardAmount    Int
+  maxPerUser      Int
+  maxPerDay       Int
+  enabled         Boolean     @default(true)
+  displayName     String?     @map("display_name")
+  notes           String?
+  comments        String?
+  retiredAt       DateTime?   @map("retired_at")
+  globalCapExempt Boolean     @default(false) @map("global_cap_exempt")
+  createdBy       String?     @map("created_by")
+  updatedBy       String?     @map("updated_by")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  userAwards      UserAward[]
+}
+
+model ChainOperation {
+  id                String               @id @default(uuid())
+  uid               String
+  address           String
+  type              ChainOperationType
+  awardRuleId       String?              @map("award_rule_id")
+  eventId           String?              @map("event_id")
+  label             String?
+  amount            Decimal
+  source            String?
+  eventTimestamp    DateTime?            @map("event_timestamp")
+  status            ChainOperationStatus @default(RESERVED)
+  txHash            String?              @map("tx_hash")
+  chainId           Int                  @map("chain_id")
+  failureReason     String?              @map("failure_reason")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+  confirmedAt       DateTime?            @map("confirmed_at")
+  submittedAt       DateTime?            @map("submitted_at")
+  idempotencyKey    String?              @unique @map("idempotency_key")
+  adminSubject      String?              @map("admin_subject")
+  reason            String?
+  internalReference String?              @map("internal_reference")
+  originalTxLogId   Int?                 @map("original_tx_log_id")
+  componentIdentity String?              @map("component_identity")
+
+  @@unique([chainId, txHash])
+  @@index([uid, createdAt])
+  @@index([status, updatedAt])
+  @@map("chain_operations")
+}
+
+model TokenPolicy {
+  id         String   @id @default("global")
+  capEnabled Boolean  @default(true) @map("cap_enabled")
+  dailyCap   Int      @default(5) @map("daily_cap")
+  resetBasis String   @default("UTC_DAY") @map("reset_basis")
+  updatedBy  String?  @map("updated_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("token_policies")
+}
+
+model ComponentSourceMapping {
+  id                String   @id @default(uuid())
+  componentIdentity String   @map("component_identity")
+  source            String
+  enabled           Boolean  @default(true)
+  createdBy         String?  @map("created_by")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([componentIdentity, source])
+  @@map("component_source_mappings")
+}
+
+model ComponentSourcePolicy {
+  id            String   @id @default("global")
+  identityClaim String   @default("azp") @map("identity_claim")
+  enforce       Boolean  @default(false)
+  updatedBy     String?  @map("updated_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("component_source_policies")
+}
+
+model ComponentSourceObservation {
+  id                String   @id @default(uuid())
+  componentIdentity String   @map("component_identity")
+  configuredSource  String   @map("configured_source")
+  eventId           String   @map("event_id")
+  matched           Boolean
+  enforced          Boolean  @default(false)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([matched, createdAt])
+  @@map("component_source_observations")
+}
+
+model RejectedAwardRequest {
+  id                String    @id @default(uuid())
+  componentIdentity String?   @map("component_identity")
+  targetUserId      String    @map("target_user_id")
+  eventId           String    @map("event_id")
+  reasonCategory    String    @map("reason_category")
+  reasonMessage     String    @map("reason_message")
+  eventTimestamp    DateTime? @map("event_timestamp")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([eventId, createdAt])
+  @@map("rejected_award_requests")
+}
+
+model UserDailyAwardLock {
+  id        String   @id @default(uuid())
+  uid       String
+  awardDate DateTime @map("award_date") @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([uid, awardDate])
+  @@map("user_daily_award_locks")
+}
+
+model ChainSyncCursor {
+  chainId            Int      @id @map("chain_id")
+  contractAddress    String   @map("contract_address")
+  lastProcessedBlock BigInt   @map("last_processed_block")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("chain_sync_cursors")
+}
+
+model AdminPrincipal {
+  id           String                @id @default(uuid())
+  nexusSubject String                @unique @map("nexus_subject")
+  displayName  String?               @map("display_name")
+  enabled      Boolean               @default(true)
+  permissions  AdminPermissionEnum[]
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  @@map("admin_principals")
+}
+
+model AdminAuditLog {
+  id                String   @id @default(uuid())
+  actorNexusSubject String   @map("actor_nexus_subject")
+  action            String
+  resourceType      String   @map("resource_type")
+  resourceId        String?  @map("resource_id")
+  before            Json?
+  after             Json?
+  reason            String?
+  userUid           String?  @map("user_uid")
+  eventId           String?  @map("event_id")
+  chainOperationId  String?  @map("chain_operation_id")
+  txLogId           Int?     @map("tx_log_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([actorNexusSubject, createdAt])
+  @@map("admin_audit_log")
 }
 
 model UserAward {
@@ -66,17 +258,32 @@ model TxLog {
   uid    String?
   uidNew String? @map("uid_new")
 
-  address        String
-  type           String
-  eventId        String?   @map("event_id")
-  label          String?
-  amount         Decimal
-  txHash         String    @map("tx_hash")
-  chainId        Int       @map("chain_id")
-  eventTimestamp DateTime? @map("event_timestamp")
-  source         String?
-  createdAt      DateTime  @default(now()) @map("created_at")
+  address           String
+  type              String
+  eventId           String?              @map("event_id")
+  label             String?
+  amount            Decimal
+  txHash            String               @map("tx_hash")
+  chainId           Int                  @map("chain_id")
+  eventTimestamp    DateTime?            @map("event_timestamp")
+  source            String?
+  status            ChainOperationStatus @default(CONFIRMED)
+  blockNumber       BigInt?              @map("block_number")
+  blockHash         String?              @map("block_hash")
+  logIndex          Int?                 @map("log_index")
+  confirmedAt       DateTime?            @map("confirmed_at")
+  lastCheckedAt     DateTime?            @map("last_checked_at")
+  failureReason     String?              @map("failure_reason")
+  chainOperationId  String?              @map("chain_operation_id")
+  adminSubject      String?              @map("admin_subject")
+  reason            String?
+  internalReference String?              @map("internal_reference")
+  originalTxLogId   Int?                 @map("original_tx_log_id")
+  createdAt         DateTime             @default(now()) @map("created_at")
 
+  @@unique([chainId, txHash, logIndex])
+  @@index([status, createdAt])
+  @@index([originalTxLogId])
   @@map("tx_log")
 }
 

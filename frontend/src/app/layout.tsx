@@ -4,8 +4,8 @@ import './globals.css';
 import ToastProvider from '@/components/ToastProvider';
 
 export const metadata: Metadata = {
-  title: 'ENERGENIUS Award System',
-  description: 'Award dashboard',
+  title: 'ENERGENIUS Administration',
+  description: 'Operational administration for the ENERGENIUS Award System',
 };
 
 export default function RootLayout({
