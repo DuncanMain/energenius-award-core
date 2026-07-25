@@ -161,6 +161,34 @@ describe('AwardService', () => {
     );
   });
 
+  it('keeps the award confirmed when the post-confirmation balance read fails (H1)', async () => {
+    awardTableService.getAwardRuleByEventId.mockResolvedValue({
+      id: 'rule-id',
+      eventId: 'enplay_purchase_res_item',
+      source: 'ENPlay',
+      rewardAmount: 1,
+      maxPerDay: 0,
+      maxPerUser: 0,
+    });
+    authService.userExists.mockResolvedValue(true);
+    userAwardRepository.findByUidAndEventIdWithLock.mockResolvedValue(null);
+    // chain read for the response balance fails AFTER the award is already confirmed & persisted
+    chainService.balanceOf.mockRejectedValue(new Error('RPC unreachable'));
+
+    await expect(
+      service.awardEvent('nexus-user-uid', 'enplay_purchase_res_item', {
+        componentToken: 'component-token',
+      })
+    ).resolves.toEqual({
+      txHash: '0xaward',
+      awarde_amount: '1',
+      new_balance: null,
+    });
+
+    // the confirmed operation must NOT be downgraded to RECONCILIATION_REQUIRED / FAILED
+    expect(prisma.chainOperation.update).not.toHaveBeenCalled();
+  });
+
   it('rejects an invalid partner event timestamp', async () => {
     await expect(
       service.awardEvent('nexus-user-uid', 'first_login', {

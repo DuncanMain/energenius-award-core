@@ -11,6 +11,10 @@ async function proxy(request: NextRequest, path: string[]) {
   const token = cookies().get('eg_admin_token')?.value;
   if (!token)
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+  // Keep the proxy scoped to /admin/*: reject traversal segments so an encoded `..` can't
+  // escape the prefix and reach other core endpoints under the admin's token.
+  if (path.some(segment => segment === '..' || segment.includes('..')))
+    return NextResponse.json({ message: 'Invalid path' }, { status: 400 });
   if (process.env.ADMIN_PREVIEW_MODE === 'true' && token === 'local-preview')
     return NextResponse.json(previewResponse(path.join('/'), request.method));
   if (!['GET', 'HEAD'].includes(request.method)) {

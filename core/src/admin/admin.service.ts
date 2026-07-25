@@ -632,44 +632,60 @@ export class AdminService {
     const treasuryBalance = credit ? await this.chain.balanceOf(treasury) : 0n;
     if (credit && treasuryBalance < amountWei)
       throw new BadRequestException('Treasury has insufficient ENC');
-    const operation = await this.prisma.$transaction(async tx => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${'energenius-admin-adjust:' + (wallet.uidNew ?? wallet.uid)}))`;
-      if (!credit) {
-        const pending = await tx.chainOperation.aggregate({
-          where: {
-            uid: wallet.uidNew ?? wallet.uid!,
-            type: { in: ['SPEND', 'ADJUSTMENT_DEBIT', 'CORRECTION_DEBIT'] },
-            status: {
-              in: ['RESERVED', 'SUBMITTED', 'RECONCILIATION_REQUIRED'],
+    let operation;
+    try {
+      operation = await this.prisma.$transaction(async tx => {
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${'energenius-admin-adjust:' + (wallet.uidNew ?? wallet.uid)}))`;
+        if (!credit) {
+          const pending = await tx.chainOperation.aggregate({
+            where: {
+              uid: wallet.uidNew ?? wallet.uid!,
+              type: { in: ['SPEND', 'ADJUSTMENT_DEBIT', 'CORRECTION_DEBIT'] },
+              status: {
+                in: ['RESERVED', 'SUBMITTED', 'RECONCILIATION_REQUIRED'],
+              },
             },
-          },
-          _sum: { amount: true },
-        });
-        const required = parseUnits(
-          String(Number(pending._sum.amount ?? 0) + dto.amount),
-          18
-        );
-        if (userBalance < required)
-          throw new BadRequestException(
-            `Insufficient balance: ${formatUnits(userBalance, 18)} ENC`
+            _sum: { amount: true },
+          });
+          const required = parseUnits(
+            String(Number(pending._sum.amount ?? 0) + dto.amount),
+            18
           );
-      }
-      return tx.chainOperation.create({
-        data: {
-          uid: wallet.uidNew ?? wallet.uid!,
-          address: wallet.address,
-          type: operationType,
-          amount: String(dto.amount),
-          chainId: this.chain.getChainId(),
-          label: dto.type,
-          idempotencyKey: dto.idempotencyKey,
-          adminSubject: subject,
-          reason: dto.reason,
-          internalReference: dto.internalReference,
-          originalTxLogId: dto.originalTxLogId,
-        },
+          if (userBalance < required)
+            throw new BadRequestException(
+              `Insufficient balance: ${formatUnits(userBalance, 18)} ENC`
+            );
+        }
+        return tx.chainOperation.create({
+          data: {
+            uid: wallet.uidNew ?? wallet.uid!,
+            address: wallet.address,
+            type: operationType,
+            amount: String(dto.amount),
+            chainId: this.chain.getChainId(),
+            label: dto.type,
+            idempotencyKey: dto.idempotencyKey,
+            adminSubject: subject,
+            reason: dto.reason,
+            internalReference: dto.internalReference,
+            originalTxLogId: dto.originalTxLogId,
+          },
+        });
       });
-    });
+    } catch (error) {
+      // A concurrent request with the same idempotency key won the create race — return that
+      // operation instead of surfacing an opaque unique-constraint 500.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const existingOp = await this.prisma.chainOperation.findUnique({
+          where: { idempotencyKey: dto.idempotencyKey },
+        });
+        if (existingOp) return this.serialize(existingOp);
+      }
+      throw error;
+    }
     let txHash: string | null = null;
     try {
       txHash = await this.prisma.$transaction(async tx => {
@@ -735,11 +751,19 @@ export class AdminService {
         operation.id,
         txLog.id
       );
+      // Adjustment is CONFIRMED and persisted above. The balance read is best-effort — a
+      // chain-read failure here must not poison the confirmed operation (same class as /wallet).
+      let balanceWei: string | null = null;
+      try {
+        balanceWei = (await this.chain.balanceOf(wallet.address)).toString();
+      } catch {
+        // balance unavailable; the adjustment already succeeded
+      }
       return this.serialize({
         operationId: operation.id,
         txHash,
         status: 'CONFIRMED',
-        balanceWei: (await this.chain.balanceOf(wallet.address)).toString(),
+        balanceWei,
       });
     } catch (error) {
       await this.prisma.chainOperation.update({

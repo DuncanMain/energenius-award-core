@@ -110,8 +110,10 @@ export class TxLogRepository {
     awardRuleId: string,
     tx: Prisma.TransactionClient
   ) {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // Use UTC day boundary to match the pending/cap/available accounting (which all use
+    // dayjs.utc().startOf('day')). Mixing local-server midnight here caused the two halves of
+    // the same daily limit to use different day windows when the server TZ isn't UTC.
+    const startOfDay = dayjs.utc().startOf('day').toDate();
 
     return tx.txLog.count({
       where: {

@@ -263,11 +263,22 @@ export class AwardService {
         });
       });
 
-      const newBalanceWei = await this.chainService.balanceOf(address);
+      // The award is CONFIRMED and persisted above. Reading the balance for the response is a
+      // best-effort convenience — a chain-read failure here must NOT poison the confirmed
+      // operation (same class as the /wallet 500). Keep it out of the reconciliation catch.
+      let newBalance: string | null = null;
+      try {
+        newBalance = formatUnits(
+          await this.chainService.balanceOf(address),
+          18
+        );
+      } catch {
+        // balance unavailable; the award already succeeded
+      }
       return {
         txHash,
         awarde_amount: rule.rewardAmount.toString(),
-        new_balance: formatUnits(newBalanceWei, 18),
+        new_balance: newBalance,
       };
     } catch (error) {
       await this.prisma.chainOperation.update({
@@ -367,11 +378,18 @@ export class AwardService {
           data: { status: 'CONFIRMED', confirmedAt: new Date() },
         });
       });
-      const newBalanceWei = await this.chainService.balanceOf(address);
+      // Spend is CONFIRMED and persisted above; the balance read is best-effort and must not
+      // poison the confirmed operation on a chain-read failure.
+      let newBalanceWei: string | null = null;
+      try {
+        newBalanceWei = (await this.chainService.balanceOf(address)).toString();
+      } catch {
+        // balance unavailable; the spend already succeeded
+      }
       return {
         tx_hash: txHash,
         address,
-        new_balance_wei: newBalanceWei.toString(),
+        new_balance_wei: newBalanceWei,
       };
     } catch (error) {
       await this.prisma.chainOperation.update({
