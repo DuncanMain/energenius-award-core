@@ -129,6 +129,7 @@ describe('AwardService', () => {
     ).resolves.toEqual({
       txHash: '0xaward',
       awarde_amount: '1',
+      awarded_amount: '1',
       new_balance: '7.0',
     });
 
@@ -182,6 +183,7 @@ describe('AwardService', () => {
     ).resolves.toEqual({
       txHash: '0xaward',
       awarde_amount: '1',
+      awarded_amount: '1',
       new_balance: null,
     });
 

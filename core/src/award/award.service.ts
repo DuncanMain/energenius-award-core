@@ -275,9 +275,13 @@ export class AwardService {
       } catch {
         // balance unavailable; the award already succeeded
       }
+      const awardedAmount = rule.rewardAmount.toString();
       return {
         txHash,
-        awarde_amount: rule.rewardAmount.toString(),
+        // `awarde_amount` is a legacy misspelling kept for backward compatibility; integrations
+        // should read `awarded_amount`. Remove the old field in a future breaking release.
+        awarde_amount: awardedAmount,
+        awarded_amount: awardedAmount,
         new_balance: newBalance,
       };
     } catch (error) {
