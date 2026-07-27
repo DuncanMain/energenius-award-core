@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { parseUnits } from 'ethers';
 import { AuthService } from '@/auth/auth.service';
@@ -14,17 +18,34 @@ import { TxLogRepository } from './repositories/tx-log.repository';
 describe('AwardService', () => {
   let service: AwardService;
   const tx = {
+    $queryRaw: jest.fn(),
     userWallet: {
       upsert: jest.fn(),
     },
+    userDailyAwardLock: {
+      upsert: jest.fn(),
+    },
+    chainOperation: {
+      count: jest.fn(),
+      aggregate: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    tokenPolicy: { findUnique: jest.fn() },
   };
   const prisma = {
     $transaction: jest.fn(),
+    chainOperation: {
+      update: jest.fn(),
+    },
   };
   const chainService = {
     award: jest.fn(),
     balanceOf: jest.fn(),
     getChainId: jest.fn(),
+    submitAward: jest.fn(),
+    waitForTransaction: jest.fn(),
+    getContractAddress: jest.fn(),
   };
   const awardTableService = {
     getAwardRuleByEventId: jest.fn(),
@@ -57,6 +78,17 @@ describe('AwardService', () => {
     jest.clearAllMocks();
     prisma.$transaction.mockImplementation(callback => callback(tx));
     configService.get.mockReturnValue('31337');
+    tx.chainOperation.count.mockResolvedValue(0);
+    tx.chainOperation.aggregate.mockResolvedValue({ _sum: { amount: null } });
+    tx.chainOperation.create.mockResolvedValue({ id: 'operation-id' });
+    tx.tokenPolicy.findUnique.mockResolvedValue(null);
+    chainService.submitAward.mockResolvedValue({ hash: '0xaward' });
+    chainService.waitForTransaction.mockResolvedValue({
+      blockNumber: 123,
+      blockHash: '0xblock',
+      logs: [{ address: '0xcontract', index: 0 }],
+    });
+    chainService.getContractAddress.mockReturnValue('0xcontract');
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -86,7 +118,6 @@ describe('AwardService', () => {
     });
     authService.userExists.mockResolvedValue(true);
     userAwardRepository.findByUidAndEventIdWithLock.mockResolvedValue(null);
-    chainService.award.mockResolvedValue('0xaward');
     chainService.balanceOf.mockResolvedValue(parseUnits('7', 18));
 
     await expect(
@@ -98,7 +129,6 @@ describe('AwardService', () => {
     ).resolves.toEqual({
       txHash: '0xaward',
       awarde_amount: '1',
-      awarded_amount: '1',
       new_balance: '7.0',
     });
 
@@ -125,9 +155,50 @@ describe('AwardService', () => {
         type: 'award',
         eventId: 'enplay_purchase_res_item',
         source: 'data-beacon-smoke',
+        eventTimestamp: new Date('2026-07-02T10:00:00.000Z'),
       }),
       tx
     );
+  });
+
+  it('keeps the award confirmed when the post-confirmation balance read fails (H1)', async () => {
+    awardTableService.getAwardRuleByEventId.mockResolvedValue({
+      id: 'rule-id',
+      eventId: 'enplay_purchase_res_item',
+      source: 'ENPlay',
+      rewardAmount: 1,
+      maxPerDay: 0,
+      maxPerUser: 0,
+    });
+    authService.userExists.mockResolvedValue(true);
+    userAwardRepository.findByUidAndEventIdWithLock.mockResolvedValue(null);
+    // chain read for the response balance fails AFTER the award is already confirmed & persisted
+    chainService.balanceOf.mockRejectedValue(new Error('RPC unreachable'));
+
+    await expect(
+      service.awardEvent('nexus-user-uid', 'enplay_purchase_res_item', {
+        componentToken: 'component-token',
+      })
+    ).resolves.toEqual({
+      txHash: '0xaward',
+      awarde_amount: '1',
+      new_balance: null,
+    });
+
+    // the confirmed operation must NOT be downgraded to RECONCILIATION_REQUIRED / FAILED
+    expect(prisma.chainOperation.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid partner event timestamp', async () => {
+    await expect(
+      service.awardEvent('nexus-user-uid', 'first_login', {
+        timestamp: 'not-a-date',
+        componentToken: 'component-token',
+      })
+    ).rejects.toThrow(BadRequestException);
+
+    expect(awardTableService.getAwardRuleByEventId).not.toHaveBeenCalled();
+    expect(chainService.award).not.toHaveBeenCalled();
   });
 
   it('rejects unknown award events before checking Nexus user existence', async () => {
@@ -201,5 +272,33 @@ describe('AwardService', () => {
     expect(userAwardRepository.findAllByUid).toHaveBeenCalledWith(
       'nexus-user-uid'
     );
+  });
+
+  it('counts today awards by external event id rather than rule uuid', async () => {
+    userAwardRepository.findAllByUid.mockResolvedValue([]);
+    awardTableService.listAwardRules.mockResolvedValue([
+      {
+        id: 'rule-uuid',
+        eventId: 'daily_login_bonus',
+        source: 'ENPlay',
+        rewardAmount: 1,
+        maxPerUser: 0,
+        maxPerDay: 1,
+      },
+    ]);
+    txLogRepository.findTodayByUid.mockResolvedValue([
+      { eventId: 'daily_login_bonus' },
+    ]);
+
+    await expect(
+      service.getAvailableAwardsForUser('nexus-user-uid')
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: 'rule-uuid',
+        event_id: 'daily_login_bonus',
+        today_count: 1,
+        is_available: false,
+      }),
+    ]);
   });
 });

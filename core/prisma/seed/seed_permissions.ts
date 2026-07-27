@@ -5,7 +5,7 @@ const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
 });
 
-const prisma = new PrismaClient({adapter});
+const prisma = new PrismaClient({ adapter });
 
 export async function seedPermissions() {
   return await prisma.permission.createMany({

@@ -2,7 +2,6 @@
 // Flat config for ESLint v9+ (CommonJS)
 // NOTE: pass parser & plugin modules (objects) — not string paths.
 
-const path = require('path');
 const { FlatCompat } = require('@eslint/eslintrc');
 const js = require('@eslint/js'); // provides eslint:recommended
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
@@ -14,6 +13,9 @@ const compat = new FlatCompat({
 });
 
 module.exports = [
+  {
+    ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'eslint.config.cjs'],
+  },
   // Translate legacy "extends" entries via FlatCompat
   ...compat.extends(
     'eslint:recommended',

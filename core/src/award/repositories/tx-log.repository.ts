@@ -14,6 +14,11 @@ export interface CreateTxLogDto {
   chainId: number;
   eventTimestamp?: Date | null;
   source?: string | null;
+  blockNumber?: bigint | null;
+  blockHash?: string | null;
+  logIndex?: number | null;
+  confirmedAt?: Date | null;
+  chainOperationId?: string | null;
 }
 
 @Injectable()
@@ -33,6 +38,11 @@ export class TxLogRepository {
         chainId: data.chainId,
         eventTimestamp: data.eventTimestamp ?? null,
         source: data.source ?? null,
+        blockNumber: data.blockNumber ?? null,
+        blockHash: data.blockHash ?? null,
+        logIndex: data.logIndex ?? null,
+        confirmedAt: data.confirmedAt ?? null,
+        chainOperationId: data.chainOperationId ?? null,
       },
     });
   }
@@ -86,6 +96,11 @@ export class TxLogRepository {
         chainId: data.chainId,
         eventTimestamp: data.eventTimestamp ?? null,
         source: data.source ?? null,
+        blockNumber: data.blockNumber ?? null,
+        blockHash: data.blockHash ?? null,
+        logIndex: data.logIndex ?? null,
+        confirmedAt: data.confirmedAt ?? null,
+        chainOperationId: data.chainOperationId ?? null,
       },
     });
   }
@@ -95,8 +110,10 @@ export class TxLogRepository {
     awardRuleId: string,
     tx: Prisma.TransactionClient
   ) {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // Use UTC day boundary to match the pending/cap/available accounting (which all use
+    // dayjs.utc().startOf('day')). Mixing local-server midnight here caused the two halves of
+    // the same daily limit to use different day windows when the server TZ isn't UTC.
+    const startOfDay = dayjs.utc().startOf('day').toDate();
 
     return tx.txLog.count({
       where: {
