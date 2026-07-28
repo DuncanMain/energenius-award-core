@@ -7,17 +7,13 @@ import { AppModule } from './app.module';
 import { IntrospectionGuard } from './auth/guards/introspectToken.guard';
 import { AwardModule } from './award/award.module';
 import { WalletModule } from './wallet/wallet.module';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
-// Swagger version comes from package.json (the release version), so it always matches the
-// deployed build without a separate APP_VERSION env to keep in sync.
-const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
+import { AdminModule } from './admin/admin.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
+  const appVersion = configService.get('APP_VERSION');
 
   // Retrieve the instance of AccessTokenGuard from Nest's context
   const introspectionGuard = app.get(IntrospectionGuard);
@@ -30,12 +26,12 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Energenius Award System API')
-    .setVersion(pkg.version)
+    .setVersion(appVersion || '1.1.1')
     .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {
-    include: [AwardModule, WalletModule],
+    include: [AwardModule, WalletModule, AdminModule],
   });
   SwaggerModule.setup('v1/api-docs', app, document);
 

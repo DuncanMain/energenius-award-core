@@ -15,6 +15,7 @@ describe('AccessTokenStrategy', () => {
 
     mockConfigService = {
       get: jest.fn().mockReturnValue('some-secret-key'),
+      getOrThrow: jest.fn().mockReturnValue('some-secret-key'),
     };
 
     const module: TestingModule = await Test.createTestingModule({

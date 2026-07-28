@@ -8,6 +8,11 @@ import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
 import { UsersHelpers } from './users.helper';
 
+jest.mock('argon2', () => ({
+  hash: jest.fn(),
+  verify: jest.fn(),
+}));
+
 const mockTransaction = {};
 
 const mockUsersRepository = {
@@ -95,7 +100,7 @@ describe('UsersService', () => {
       mockUsersHelper.userWithEmailExists.mockResolvedValue(false);
       mockRolesHelper.roleWithIdExists.mockResolvedValue(true);
 
-      jest.spyOn(argon2, 'hash').mockResolvedValue('fakeHashedPassword');
+      (argon2.hash as jest.Mock).mockResolvedValue('fakeHashedPassword');
 
       const createdUser = { ...userDto, id: 'someGeneratedId' };
 

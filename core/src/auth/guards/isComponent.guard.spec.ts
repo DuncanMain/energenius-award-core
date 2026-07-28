@@ -16,9 +16,9 @@ describe('IsComponentGuard', () => {
   });
 
   it('allows Nexus component tokens by token_type', () => {
-    expect(
-      guard.canActivate(createContext({ token_type: 'COMPONENT' }))
-    ).toBe(true);
+    expect(guard.canActivate(createContext({ token_type: 'COMPONENT' }))).toBe(
+      true
+    );
   });
 
   it('allows legacy component role tokens', () => {
