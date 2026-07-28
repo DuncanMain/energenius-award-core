@@ -31,7 +31,12 @@ export class ChainService implements OnModuleInit {
     this.contractAddress = this.mustEnv('ENCOIN_CONTRACT_ADDRESS');
     const privateKey = this.mustEnv('AMOY_PRIVATE_KEY');
 
-    this.provider = new JsonRpcProvider(rpcUrl, this.chainId);
+    // Disable JSON-RPC request batching: the drpc.org free plan rejects batches of >3 calls,
+    // and ethers batches concurrent calls by default. Endpoints that fan out (e.g. system health
+    // fires ~9 reads via Promise.all) would otherwise fail. Send each call as its own request.
+    this.provider = new JsonRpcProvider(rpcUrl, this.chainId, {
+      batchMaxCount: 1,
+    });
     this.signer = new Wallet(privateKey, this.provider);
     this.encoin = new Contract(this.contractAddress, encoinAbi, this.signer);
   }
