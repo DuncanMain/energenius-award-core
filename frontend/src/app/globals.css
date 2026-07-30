@@ -222,7 +222,11 @@ button {
   overflow: auto;
 }
 table {
-  width: 100%;
+  /* Size to content (nowrap cells) so the table can exceed .table-wrap and trigger its
+     horizontal scroll; min-width keeps it filling the panel when content is narrow.
+     With plain `width: 100%` the long hashes overflowed and got clipped by `.panel`. */
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 12px;
 }

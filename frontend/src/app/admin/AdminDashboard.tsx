@@ -101,25 +101,9 @@ async function api(path: string, init?: RequestInit) {
     );
   return value;
 }
-const short = (v: any, n = 18) => {
-  if (v == null) return '—';
-  const s = String(v);
-  if (s.length <= n) return s;
-  // Long hashes/IDs are truncated to fit the column; hover shows the full value and clicking
-  // copies it (stopPropagation so it doesn't trigger the row's open-detail click).
-  return (
-    <span
-      title={`${s}\n(click to copy)`}
-      style={{ cursor: 'copy' }}
-      onClick={e => {
-        e.stopPropagation();
-        navigator.clipboard?.writeText(s);
-      }}
-    >
-      {`${s.slice(0, n)}…`}
-    </span>
-  );
-};
+// Show the full value; the table container scrolls horizontally (`.table-wrap { overflow: auto }`)
+// when the hashes/IDs make it wide. Second arg kept for call-site compatibility, but ignored.
+const short = (v: any, _n = 18) => (v == null ? '—' : String(v));
 const date = (v: any) => (v ? new Date(v).toLocaleString() : '—');
 
 export default function AdminDashboard() {
