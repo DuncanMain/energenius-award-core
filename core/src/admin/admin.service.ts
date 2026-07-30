@@ -176,63 +176,147 @@ export class AdminService {
   }
 
   async transactions(query: PageQueryDto) {
-    const where: Prisma.ChainOperationWhereInput = {
+    // The transactions view unifies the two stores that together hold the full picture:
+    //  • tx_log           — the confirmed transaction ledger (all history + every new award/spend)
+    //  • chain_operations — durable operations with lifecycle/reconciliation state
+    // A confirmed operation exists in BOTH (tx_log.chainOperationId links them), so we list every
+    // tx_log row PLUS only the chain_operations that have not yet produced a tx_log (in-flight /
+    // failed / reconciliation-required). Deduped — no double-counting. Overview stats are unchanged
+    // (they still read tx_log only).
+    const from = query.from ? new Date(query.from) : undefined;
+    const to = query.to ? new Date(query.to) : undefined;
+    const createdAt =
+      from || to
+        ? { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) }
+        : undefined;
+    const search = query.search;
+
+    const txWhere: Prisma.TxLogWhereInput = {
+      ...(query.status ? { status: query.status as any } : {}),
+      ...(query.type ? { type: query.type } : {}),
+      ...(query.eventId ? { eventId: query.eventId } : {}),
+      ...(query.source
+        ? { source: { contains: query.source, mode: 'insensitive' } }
+        : {}),
+      ...(search
+        ? {
+            OR: [
+              { uid: { contains: search, mode: 'insensitive' } },
+              { address: { contains: search, mode: 'insensitive' } },
+              { txHash: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+      ...(createdAt ? { createdAt } : {}),
+    };
+
+    const opWhere: Prisma.ChainOperationWhereInput = {
       ...(query.status ? { status: query.status as any } : {}),
       ...(query.type ? { type: query.type as any } : {}),
       ...(query.eventId ? { eventId: query.eventId } : {}),
       ...(query.source
         ? { source: { contains: query.source, mode: 'insensitive' } }
         : {}),
-      ...(query.search
+      ...(search
         ? {
             OR: [
-              { uid: { contains: query.search, mode: 'insensitive' } },
-              { address: { contains: query.search, mode: 'insensitive' } },
-              { txHash: { contains: query.search, mode: 'insensitive' } },
+              { uid: { contains: search, mode: 'insensitive' } },
+              { address: { contains: search, mode: 'insensitive' } },
+              { txHash: { contains: search, mode: 'insensitive' } },
               {
                 componentIdentity: {
-                  contains: query.search,
+                  contains: search,
                   mode: 'insensitive',
                 },
               },
             ],
           }
         : {}),
-      ...(query.from || query.to
-        ? {
-            createdAt: {
-              ...(query.from ? { gte: new Date(query.from) } : {}),
-              ...(query.to ? { lte: new Date(query.to) } : {}),
-            },
-          }
-        : {}),
+      ...(createdAt ? { createdAt } : {}),
     };
-    const orderField = ['createdAt', 'updatedAt', 'amount', 'status'].includes(
-      query.sort
-    )
+
+    // Exclude chain_operations already represented in tx_log (any status) to avoid duplicates.
+    const linked = await this.prisma.txLog.findMany({
+      where: { chainOperationId: { not: null } },
+      select: { chainOperationId: true },
+    });
+    const excludeOpIds = linked
+      .map(l => l.chainOperationId)
+      .filter((id): id is string => Boolean(id));
+
+    const [txRows, opRows] = await Promise.all([
+      this.prisma.txLog.findMany({ where: txWhere }),
+      this.prisma.chainOperation.findMany({
+        where: excludeOpIds.length
+          ? { AND: [opWhere, { id: { notIn: excludeOpIds } }] }
+          : opWhere,
+      }),
+    ]);
+
+    const unified = [
+      ...txRows.map(r => ({
+        origin: 'tx_log' as const,
+        id: String(r.id),
+        createdAt: r.createdAt,
+        type: r.type,
+        uid: r.uid,
+        address: r.address,
+        amount: r.amount,
+        status: r.status,
+        txHash: r.txHash,
+        eventId: r.eventId,
+        source: r.source,
+        label: r.label,
+        chainId: r.chainId,
+        confirmedAt: r.confirmedAt,
+        reason: r.reason,
+        adminSubject: r.adminSubject,
+        componentIdentity: null as string | null,
+      })),
+      ...opRows.map(r => ({
+        origin: 'chain_operation' as const,
+        id: r.id,
+        createdAt: r.createdAt,
+        type: r.type,
+        uid: r.uid,
+        address: r.address,
+        amount: r.amount,
+        status: r.status,
+        txHash: r.txHash,
+        eventId: r.eventId,
+        source: r.source,
+        label: r.label,
+        chainId: r.chainId,
+        confirmedAt: r.confirmedAt,
+        reason: r.reason,
+        adminSubject: r.adminSubject,
+        componentIdentity: r.componentIdentity,
+      })),
+    ];
+
+    const sortField = ['createdAt', 'amount', 'status'].includes(query.sort)
       ? query.sort
       : 'createdAt';
-    const [items, total] = await Promise.all([
-      this.prisma.chainOperation.findMany({
-        where,
-        ...this.page(query),
-        orderBy: { [orderField]: query.order },
-      }),
-      this.prisma.chainOperation.count({ where }),
-    ]);
-    const hashes = items.map(item => item.txHash).filter(Boolean) as string[];
-    const logs = await this.prisma.txLog.findMany({
-      where: { txHash: { in: hashes } },
+    const dir = query.order === 'asc' ? 1 : -1;
+    unified.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'amount') {
+        cmp = Number(a.amount) - Number(b.amount);
+      } else if (sortField === 'status') {
+        cmp = String(a.status).localeCompare(String(b.status));
+      } else {
+        cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      return cmp * dir;
     });
-    return this.serialize({
-      items: items.map(item => ({
-        ...item,
-        txLog: logs.find(log => log.txHash === item.txHash) ?? null,
-      })),
-      total,
-      page: query.page,
-      pageSize: query.pageSize,
-    });
+
+    const total = unified.length;
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 25;
+    const start = (page - 1) * pageSize;
+    const items = unified.slice(start, start + pageSize);
+
+    return this.serialize({ items, total, page, pageSize });
   }
 
   async rules(query: PageQueryDto) {
