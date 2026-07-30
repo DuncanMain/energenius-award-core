@@ -101,12 +101,25 @@ async function api(path: string, init?: RequestInit) {
     );
   return value;
 }
-const short = (v: any, n = 18) =>
-  v == null
-    ? '—'
-    : String(v).length > n
-      ? `${String(v).slice(0, n)}…`
-      : String(v);
+const short = (v: any, n = 18) => {
+  if (v == null) return '—';
+  const s = String(v);
+  if (s.length <= n) return s;
+  // Long hashes/IDs are truncated to fit the column; hover shows the full value and clicking
+  // copies it (stopPropagation so it doesn't trigger the row's open-detail click).
+  return (
+    <span
+      title={`${s}\n(click to copy)`}
+      style={{ cursor: 'copy' }}
+      onClick={e => {
+        e.stopPropagation();
+        navigator.clipboard?.writeText(s);
+      }}
+    >
+      {`${s.slice(0, n)}…`}
+    </span>
+  );
+};
 const date = (v: any) => (v ? new Date(v).toLocaleString() : '—');
 
 export default function AdminDashboard() {
@@ -289,7 +302,7 @@ function Content({
             columns={[
               ['createdAt', 'Time', date],
               ['eventId', 'Event'],
-              ['targetUserId', 'User'],
+              ['targetUserId', 'Nexus user ID', short],
               ['reasonCategory', 'Reason'],
             ]}
           />
@@ -357,7 +370,7 @@ function Content({
           columns={[
             ['createdAt', 'Created', date],
             ['type', 'Type'],
-            ['uid', 'User', short],
+            ['uid', 'Nexus user ID', short],
             ['amount', 'ENC'],
             ['status', 'Status'],
             ['txHash', 'Transaction', short],
@@ -436,7 +449,7 @@ function Metric({
 }: {
   label: string;
   value: any;
-  note: string;
+  note: React.ReactNode;
 }) {
   return (
     <article className="metric">
