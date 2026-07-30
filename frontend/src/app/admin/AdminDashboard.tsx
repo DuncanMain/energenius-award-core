@@ -315,7 +315,12 @@ function Content({
           action="Select a user to inspect on-chain balance and history"
         >
           <Table
-            rows={data.items || []}
+            rows={(data.items || []).map((r: any) => ({
+              ...r,
+              // Prefer the new nexus_user_id column; fall back to `uid` until/unless a
+              // backfill populates `uid_new` (currently null across the board).
+              nexusUserId: r.uidNew || r.uid,
+            }))}
             onRow={async r => {
               try {
                 setSelected(
@@ -328,8 +333,7 @@ function Content({
               }
             }}
             columns={[
-              ['uidNew', 'Nexus user ID', short],
-              ['uid', 'Legacy UID', short],
+              ['nexusUserId', 'Nexus user ID', short],
               ['address', 'Wallet address', short],
               ['updatedAt', 'Updated', date],
             ]}
