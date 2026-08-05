@@ -1,8 +1,17 @@
+# Cap container logs (json-file default is unlimited → grows forever).
+# Applied per service below; takes effect when a container is (re)created on deploy.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
 services:
   app:
     container_name: award-system-frontend-app
     image: ghcr.io/zentrixlab/energenius-award-system-frontend:latest
     restart: unless-stopped
+    logging: *default-logging
     env_file:
       - .env
     environment:
