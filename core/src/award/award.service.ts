@@ -212,7 +212,7 @@ export class AwardService {
       // Serialises treasury nonce allocation across all core instances. This
       // transaction covers submission only, never block confirmation.
       txHash = await this.prisma.$transaction(async tx => {
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
         const submitted = await this.chainService.submitAward(
           address,
           amountWei
@@ -305,7 +305,7 @@ export class AwardService {
     const balanceWei = await this.chainService.balanceOf(address);
 
     const operation = await this.prisma.$transaction(async tx => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${'energenius-spend:' + uid}))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'energenius-spend:' + uid}))`;
       const pending = await tx.chainOperation.aggregate({
         where: {
           uid,
@@ -337,7 +337,7 @@ export class AwardService {
     let txHash: string | null = null;
     try {
       txHash = await this.prisma.$transaction(async tx => {
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
         const submitted = await this.chainService.submitSpend(
           address,
           amountWei

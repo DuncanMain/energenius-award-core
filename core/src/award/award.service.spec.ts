@@ -19,6 +19,7 @@ describe('AwardService', () => {
   let service: AwardService;
   const tx = {
     $queryRaw: jest.fn(),
+    $executeRaw: jest.fn(),
     userWallet: {
       upsert: jest.fn(),
     },

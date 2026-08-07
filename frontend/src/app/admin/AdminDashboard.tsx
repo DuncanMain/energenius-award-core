@@ -348,20 +348,26 @@ function Content({
     );
   if (view === 'transactions')
     return (
-      <Panel title="Durable chain operations">
-        <Table
-          rows={data.items || []}
-          columns={[
-            ['createdAt', 'Created', date],
-            ['type', 'Type'],
-            ['uid', 'Nexus user ID', short],
-            ['amount', 'ENC'],
-            ['status', 'Status'],
-            ['txHash', 'Transaction', short],
-            ['componentIdentity', 'Component', short],
-          ]}
-        />
-      </Panel>
+      <>
+        <Panel title="Durable chain operations">
+          <Table
+            rows={data.items || []}
+            onRow={r => setSelected(r)}
+            columns={[
+              ['createdAt', 'Created', date],
+              ['type', 'Type'],
+              ['uid', 'Nexus user ID', short],
+              ['amount', 'ENC'],
+              ['status', 'Status'],
+              ['txHash', 'Transaction', short],
+              ['componentIdentity', 'Component', short],
+            ]}
+          />
+        </Panel>
+        {selected && (
+          <TransactionDrawer value={selected} close={() => setSelected(null)} />
+        )}
+      </>
     );
   if (view === 'events')
     return (
@@ -533,6 +539,48 @@ function Drawer({
     </div>
   );
 }
+
+function TransactionDrawer({
+  value,
+  close,
+}: {
+  value: Json;
+  close: () => void;
+}) {
+  return (
+    <Drawer title="Chain operation" close={close}>
+      <dl className="details">
+        <dt>Status</dt>
+        <dd>{value.status || '—'}</dd>
+        <dt>Failure reason</dt>
+        <dd>{value.failureReason || '—'}</dd>
+        <dt>Created</dt>
+        <dd>{date(value.createdAt)}</dd>
+        <dt>Updated</dt>
+        <dd>{date(value.updatedAt)}</dd>
+        <dt>Type</dt>
+        <dd>{value.type || '—'}</dd>
+        <dt>Amount</dt>
+        <dd>{value.amount == null ? '—' : `${value.amount} ENC`}</dd>
+        <dt>Nexus user ID</dt>
+        <dd>{value.uid || '—'}</dd>
+        <dt>Wallet address</dt>
+        <dd>{value.address || '—'}</dd>
+        <dt>Event ID</dt>
+        <dd>{value.eventId || '—'}</dd>
+        <dt>Source</dt>
+        <dd>{value.source || '—'}</dd>
+        <dt>Component</dt>
+        <dd>{value.componentIdentity || '—'}</dd>
+        <dt>Transaction hash</dt>
+        <dd>{value.txHash || '—'}</dd>
+        <dt>Chain ID</dt>
+        <dd>{value.chainId ?? '—'}</dd>
+      </dl>
+    </Drawer>
+  );
+}
+
 function UserDrawer({
   value,
   me,
