@@ -719,7 +719,7 @@ export class AdminService {
     let operation;
     try {
       operation = await this.prisma.$transaction(async tx => {
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${'energenius-admin-adjust:' + (wallet.uidNew ?? wallet.uid)}))`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'energenius-admin-adjust:' + (wallet.uidNew ?? wallet.uid)}))`;
         if (!credit) {
           const pending = await tx.chainOperation.aggregate({
             where: {
@@ -773,7 +773,7 @@ export class AdminService {
     let txHash: string | null = null;
     try {
       txHash = await this.prisma.$transaction(async tx => {
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
         const submitted = credit
           ? await this.chain.submitAward(wallet.address, amountWei)
           : await this.chain.submitSpend(wallet.address, amountWei);

@@ -7,6 +7,25 @@ const coreUrl =
   process.env.NEXT_PUBLIC_API_URL ||
   'http://localhost:3000/v1';
 
+function isSameRequestHost(request: NextRequest, origin: string) {
+  try {
+    const originHost = new URL(origin).host.toLowerCase();
+    const forwardedHost = request.headers
+      .get('x-forwarded-host')
+      ?.split(',', 1)[0]
+      .trim()
+      .toLowerCase();
+    const requestHost = request.headers.get('host')?.trim().toLowerCase();
+
+    // nextUrl can contain the container's internal host behind a reverse proxy.
+    // Compare with the public forwarded host first, while retaining Host as a
+    // fallback for direct/local deployments.
+    return originHost === forwardedHost || originHost === requestHost;
+  } catch {
+    return false;
+  }
+}
+
 async function proxy(request: NextRequest, path: string[]) {
   const token = cookies().get('eg_admin_token')?.value;
   if (!token)
@@ -19,7 +38,7 @@ async function proxy(request: NextRequest, path: string[]) {
     return NextResponse.json(previewResponse(path.join('/'), request.method));
   if (!['GET', 'HEAD'].includes(request.method)) {
     const origin = request.headers.get('origin');
-    if (origin && origin !== request.nextUrl.origin)
+    if (origin && !isSameRequestHost(request, origin))
       return NextResponse.json({ message: 'Origin rejected' }, { status: 403 });
   }
   const target = `${coreUrl.replace(/\/$/, '')}/admin/${path.join('/')}${request.nextUrl.search}`;

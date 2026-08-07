@@ -71,3 +71,7 @@ jobs:
             docker network create shared-proxy || true
             docker compose -f docker-compose.prod.yaml pull app
             docker compose -f docker-compose.prod.yaml up -d
+            # Reclaim disk: the previous :latest becomes a dangling image on every pull.
+            # Prune only untagged images + build cache (never touches tagged/in-use images).
+            docker image prune -f
+            docker builder prune -f
