@@ -10,6 +10,7 @@ import {
   CircleDollarSign,
   Database,
   Gauge,
+  HelpCircle,
   LogOut,
   RefreshCw,
   Search,
@@ -105,6 +106,22 @@ async function api(path: string, init?: RequestInit) {
 // when the hashes/IDs make it wide. Second arg kept for call-site compatibility, but ignored.
 const short = (v: any, _n = 18) => (v == null ? '—' : String(v));
 const date = (v: any) => (v ? new Date(v).toLocaleString() : '—');
+
+function FieldName({ label, help }: { label: string; help: string }) {
+  return (
+    <span className="field-name">
+      {label}
+      <span
+        className="help-tip"
+        tabIndex={0}
+        aria-label={`${label}: ${help}`}
+        data-tooltip={help}
+      >
+        <HelpCircle size={14} aria-hidden="true" />
+      </span>
+    </span>
+  );
+}
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -209,6 +226,7 @@ export default function AdminDashboard() {
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && load()}
                 placeholder="Search records…"
+                title="Filter the current table. Press Enter or select Refresh to apply the search."
               />
             </div>
             <button onClick={load}>
@@ -662,8 +680,15 @@ function Adjustment({ uid, done }: { uid: string; done: () => void }) {
   return (
     <form onSubmit={submit} className="form-stack inset">
       <label>
-        Type
-        <select value={type} onChange={e => setType(e.target.value)}>
+        <FieldName
+          label="Type"
+          help="Select the kind of balance adjustment that will be recorded on chain."
+        />
+        <select
+          value={type}
+          onChange={e => setType(e.target.value)}
+          title="Select the kind of balance adjustment that will be recorded on chain."
+        >
           <option>CREDIT</option>
           <option>DEBIT</option>
           <option>CORRECTION_CREDIT</option>
@@ -672,28 +697,40 @@ function Adjustment({ uid, done }: { uid: string; done: () => void }) {
         </select>
       </label>
       <label>
-        Amount (whole ENC)
+        <FieldName
+          label="Amount (whole ENC)"
+          help="Enter the whole number of ENC to credit or debit. Fractions are not supported."
+        />
         <input
           type="number"
           min="1"
           value={amount}
           onChange={e => setAmount(e.target.value)}
+          title="Enter the whole number of ENC to credit or debit. Fractions are not supported."
         />
       </label>
       <label>
-        Reason
+        <FieldName
+          label="Reason"
+          help="Explain why this irreversible balance adjustment is required. The reason is retained in the audit log."
+        />
         <textarea
           required
           value={reason}
           onChange={e => setReason(e.target.value)}
+          title="Explain why this irreversible balance adjustment is required. The reason is retained in the audit log."
         />
       </label>
       <label>
-        Type to confirm
+        <FieldName
+          label="Type to confirm"
+          help={`Enter “${confirmation}” exactly to confirm this on-chain operation.`}
+        />
         <input
           required
           pattern={confirmation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}
           placeholder={confirmation}
+          title={`Enter “${confirmation}” exactly to confirm this on-chain operation.`}
         />
       </label>
       <button className="danger">Submit irreversible on-chain operation</button>
@@ -764,16 +801,44 @@ function EventDrawer({
     >
       <form onSubmit={submit} className="form-grid">
         {[
-          ['eventId', 'Event ID'],
-          ['displayName', 'Display name'],
-          ['source', 'Source'],
-          ['rewardAmount', 'Reward (ENC)'],
-          ['maxPerUser', 'Max per user'],
-          ['maxPerDay', 'Max per day'],
-          ['relativeValue', 'Relative value'],
-        ].map(([k, l]) => (
+          [
+            'eventId',
+            'Event ID',
+            'Unique identifier sent by the source application when this event occurs.',
+          ],
+          [
+            'displayName',
+            'Display name',
+            'Human-readable name shown to administrators and users.',
+          ],
+          [
+            'source',
+            'Source',
+            'Application or component expected to submit this event.',
+          ],
+          [
+            'rewardAmount',
+            'Reward (ENC)',
+            'Whole number of ENC awarded each time this event is accepted.',
+          ],
+          [
+            'maxPerUser',
+            'Max per user',
+            'Maximum times one user can receive this event award. Enter 0 for unlimited.',
+          ],
+          [
+            'maxPerDay',
+            'Max per day',
+            'Maximum times one user can receive this event award per UTC day. Enter 0 for unlimited.',
+          ],
+          [
+            'relativeValue',
+            'Relative value',
+            'Ranks the value of this event: 1 = Low, 2 = Medium, 3 = High. This does not change the ENC reward amount.',
+          ],
+        ].map(([k, l, help]) => (
           <label key={k}>
-            {l}
+            <FieldName label={l} help={help} />
             <input
               required
               value={form[k] ?? ''}
@@ -788,23 +853,32 @@ function EventDrawer({
                   : 'text'
               }
               onChange={e => set(k, e.target.value)}
+              title={help}
             />
           </label>
         ))}
         <label className="wide">
-          Notes
+          <FieldName
+            label="Notes"
+            help="Optional operational context or dependencies for this reward event."
+          />
           <textarea
             value={form.notes || ''}
             onChange={e => set('notes', e.target.value)}
+            title="Optional operational context or dependencies for this reward event."
           />
         </label>
         {!value.new && (
           <label className="wide">
-            Reason
+            <FieldName
+              label="Reason"
+              help="Explain why this existing reward event is being changed. The reason is retained in the audit log."
+            />
             <textarea
               required
               value={form.reason || ''}
               onChange={e => set('reason', e.target.value)}
+              title="Explain why this existing reward event is being changed. The reason is retained in the audit log."
             />
           </label>
         )}
@@ -813,8 +887,12 @@ function EventDrawer({
             type="checkbox"
             checked={!!form.globalCapExempt}
             onChange={e => set('globalCapExempt', e.target.checked)}
+            title="Allow awards from this event even when the global daily ENC cap has been reached."
           />{' '}
-          Exempt from global cap
+          <FieldName
+            label="Exempt from global cap"
+            help="Allow awards from this event even when the global daily ENC cap has been reached."
+          />
         </label>
         <button className="primary wide">Save event</button>
       </form>
@@ -868,35 +946,51 @@ function PolicyPanel({
               checked={cap}
               disabled={!editable}
               onChange={e => setCap(e.target.checked)}
+              title="Apply one combined daily ENC limit across all non-exempt reward events."
             />{' '}
-            Enable global daily award cap
+            <FieldName
+              label="Enable global daily award cap"
+              help="Apply one combined daily ENC limit across all non-exempt reward events."
+            />
           </label>
           <label>
-            Daily cap (whole ENC)
+            <FieldName
+              label="Daily cap (whole ENC)"
+              help="Maximum whole ENC a user may receive per UTC day across non-exempt events."
+            />
             <input
               type="number"
               min="0"
               disabled={!editable}
               value={daily}
               onChange={e => setDaily(Number(e.target.value))}
+              title="Maximum whole ENC a user may receive per UTC day across non-exempt events."
             />
           </label>
           <label className="wide">
-            Exempt event IDs (comma separated)
+            <FieldName
+              label="Exempt event IDs (comma separated)"
+              help="Event IDs that bypass the global daily award cap, separated by commas."
+            />
             <input
               disabled={!editable}
               value={ex}
               onChange={e => setEx(e.target.value)}
+              title="Event IDs that bypass the global daily award cap, separated by commas."
             />
           </label>
           {editable && (
             <>
               <label className="wide">
-                Reason
+                <FieldName
+                  label="Reason"
+                  help="Explain why the global token policy is changing. The reason is retained in the audit log."
+                />
                 <textarea
                   required
                   value={reason}
                   onChange={e => setReason(e.target.value)}
+                  title="Explain why the global token policy is changing. The reason is retained in the audit log."
                 />
               </label>
               <button className="primary wide">Save token policy</button>
@@ -997,16 +1091,27 @@ function AdminsPanel({ data, reload }: { data: Json; reload: () => void }) {
         <Drawer title="Add administrator" close={() => setOpen(false)}>
           <form onSubmit={create} className="form-stack">
             <label>
-              Nexus subject (`sub`)
+              <FieldName
+                label="Nexus subject (`sub`)"
+                help="Exact immutable subject identifier from the administrator’s Nexus identity token."
+              />
               <input
                 required
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
+                title="Exact immutable subject identifier from the administrator’s Nexus identity token."
               />
             </label>
             <label>
-              Display name
-              <input value={name} onChange={e => setName(e.target.value)} />
+              <FieldName
+                label="Display name"
+                help="Optional human-readable name used to identify this administrator in the console."
+              />
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                title="Optional human-readable name used to identify this administrator in the console."
+              />
             </label>
             <fieldset>
               <legend>Permissions</legend>
@@ -1023,8 +1128,12 @@ function AdminsPanel({ data, reload }: { data: Json; reload: () => void }) {
                             : perms.filter(x => x !== p)
                         )
                       }
+                      title={`Grant the ${p.replace('ADMIN_', '').replaceAll('_', ' ').toLowerCase()} permission.`}
                     />
-                    {p.replace('ADMIN_', '').replaceAll('_', ' ')}
+                    <FieldName
+                      label={p.replace('ADMIN_', '').replaceAll('_', ' ')}
+                      help={`Grant the ${p.replace('ADMIN_', '').replaceAll('_', ' ').toLowerCase()} permission.`}
+                    />
                   </label>
                 ))}
               </div>

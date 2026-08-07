@@ -332,6 +332,47 @@ tr.clickable:hover {
   font-weight: 700;
   color: #52635e;
 }
+.field-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+}
+.help-tip {
+  position: relative;
+  display: inline-flex;
+  color: #687b75;
+  cursor: help;
+  outline: none;
+}
+.help-tip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: 280px;
+  transform: translateX(-50%) translateY(3px);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #17352d;
+  color: white;
+  box-shadow: 0 8px 24px #17352d33;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+.help-tip:hover::after,
+.help-tip:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 .form-stack input,
 .form-stack select,
 .form-stack textarea,
