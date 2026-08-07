@@ -38,7 +38,7 @@ export class WalletController {
 
       return await this.awardService.spend(
         nexus_user_id,
-        body.amount,
+        BigInt(body.amount),
         body.label
       );
     } catch (e) {
