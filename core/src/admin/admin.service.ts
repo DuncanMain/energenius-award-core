@@ -288,6 +288,8 @@ export class AdminService {
         label: r.label,
         chainId: r.chainId,
         confirmedAt: r.confirmedAt,
+        updatedAt: r.updatedAt,
+        failureReason: r.failureReason,
         reason: r.reason,
         adminSubject: r.adminSubject,
         componentIdentity: r.componentIdentity,

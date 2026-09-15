@@ -21,6 +21,8 @@ import {
 } from '@/utils/constants/award.constants';
 import { dayjs } from '@/utils/dayjs';
 
+const SIGNER_TRANSACTION_OPTIONS = { maxWait: 10_000, timeout: 30_000 };
+
 @Injectable()
 export class AwardService {
   constructor(
@@ -211,22 +213,25 @@ export class AwardService {
     try {
       // Serialises treasury nonce allocation across all core instances. This
       // transaction covers submission only, never block confirmation.
-      txHash = await this.prisma.$transaction(async tx => {
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
-        const submitted = await this.chainService.submitAward(
-          address,
-          amountWei
-        );
-        await tx.chainOperation.update({
-          where: { id: operation.id },
-          data: {
-            status: 'SUBMITTED',
-            txHash: submitted.hash,
-            submittedAt: new Date(),
-          },
-        });
-        return submitted.hash;
-      });
+      txHash = await this.prisma.$transaction(
+        async tx => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
+          const submitted = await this.chainService.submitAward(
+            address,
+            amountWei
+          );
+          await tx.chainOperation.update({
+            where: { id: operation.id },
+            data: {
+              status: 'SUBMITTED',
+              txHash: submitted.hash,
+              submittedAt: new Date(),
+            },
+          });
+          return submitted.hash;
+        },
+        SIGNER_TRANSACTION_OPTIONS
+      );
 
       const receipt = await this.chainService.waitForTransaction(txHash);
       const contractLog = receipt.logs.find(
@@ -336,22 +341,25 @@ export class AwardService {
 
     let txHash: string | null = null;
     try {
-      txHash = await this.prisma.$transaction(async tx => {
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
-        const submitted = await this.chainService.submitSpend(
-          address,
-          amountWei
-        );
-        await tx.chainOperation.update({
-          where: { id: operation.id },
-          data: {
-            status: 'SUBMITTED',
-            txHash: submitted.hash,
-            submittedAt: new Date(),
-          },
-        });
-        return submitted.hash;
-      });
+      txHash = await this.prisma.$transaction(
+        async tx => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
+          const submitted = await this.chainService.submitSpend(
+            address,
+            amountWei
+          );
+          await tx.chainOperation.update({
+            where: { id: operation.id },
+            data: {
+              status: 'SUBMITTED',
+              txHash: submitted.hash,
+              submittedAt: new Date(),
+            },
+          });
+          return submitted.hash;
+        },
+        SIGNER_TRANSACTION_OPTIONS
+      );
       const receipt = await this.chainService.waitForTransaction(txHash);
       const contractLog = receipt.logs.find(
         log =>

@@ -45,6 +45,7 @@ describe('AwardService', () => {
     balanceOf: jest.fn(),
     getChainId: jest.fn(),
     submitAward: jest.fn(),
+    submitSpend: jest.fn(),
     waitForTransaction: jest.fn(),
     getContractAddress: jest.fn(),
   };
@@ -189,6 +190,74 @@ describe('AwardService', () => {
     });
 
     // the confirmed operation must NOT be downgraded to RECONCILIATION_REQUIRED / FAILED
+    expect(prisma.chainOperation.update).not.toHaveBeenCalled();
+  });
+
+  it('serializes concurrent spends and confirms both with distinct hashes', async () => {
+    tx.chainOperation.create
+      .mockResolvedValueOnce({ id: 'spend-a' })
+      .mockResolvedValueOnce({ id: 'spend-b' });
+    tx.chainOperation.aggregate.mockResolvedValue({ _sum: { amount: null } });
+    chainService.getChainId.mockReturnValue(31337);
+    chainService.balanceOf.mockResolvedValue(parseUnits('10', 18));
+    chainService.getContractAddress.mockReturnValue('0xcontract');
+
+    let activeSubmissions = 0;
+    let maximumConcurrentSubmissions = 0;
+    let submissionNumber = 0;
+    chainService.submitSpend.mockImplementation(async () => {
+      activeSubmissions += 1;
+      maximumConcurrentSubmissions = Math.max(
+        maximumConcurrentSubmissions,
+        activeSubmissions
+      );
+      await new Promise(resolve => setTimeout(resolve, 50));
+      submissionNumber += 1;
+      activeSubmissions -= 1;
+      return { hash: `0xspend${submissionNumber}` };
+    });
+    chainService.waitForTransaction.mockImplementation(async txHash => ({
+      blockNumber: txHash === '0xspend1' ? 101 : 102,
+      blockHash: `${txHash}-block`,
+      logs: [{ address: '0xcontract', index: 0 }],
+    }));
+
+    let signerTail = Promise.resolve();
+    prisma.$transaction.mockImplementation(async callback => {
+      let releaseSigner: (() => void) | undefined;
+      const transactionTx = {
+        ...tx,
+        $executeRaw: jest.fn(async (strings: TemplateStringsArray) => {
+          if (strings.join('').includes('energenius-treasury-signer')) {
+            const previous = signerTail;
+            signerTail = new Promise<void>(resolve => {
+              releaseSigner = resolve;
+            });
+            await previous;
+          }
+          return 0;
+        }),
+      };
+      try {
+        return await callback(transactionTx);
+      } finally {
+        releaseSigner?.();
+      }
+    });
+
+    const [first, second] = await Promise.all([
+      service.spend('nexus-user-uid', 1n, 'Concurrent purchase A'),
+      service.spend('nexus-user-uid', 1n, 'Concurrent purchase B'),
+    ]);
+
+    expect(first.tx_hash).not.toBe(second.tx_hash);
+    expect(new Set([first.tx_hash, second.tx_hash])).toEqual(
+      new Set(['0xspend1', '0xspend2'])
+    );
+    expect(chainService.submitSpend).toHaveBeenCalledTimes(2);
+    expect(maximumConcurrentSubmissions).toBe(1);
+    expect(txLogRepository.createInTransaction).toHaveBeenCalledTimes(2);
+    expect(tx.chainOperation.update).toHaveBeenCalledTimes(4);
     expect(prisma.chainOperation.update).not.toHaveBeenCalled();
   });
 
