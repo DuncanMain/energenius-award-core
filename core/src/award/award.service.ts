@@ -101,13 +101,11 @@ export class AwardService {
     if (!userValid) throw new NotFoundException(`Unknown uid: ${uid}`);
 
     const address = deriveAddress(uid);
-    const amountWei = parseUnits(rule.rewardAmount.toString(), 18);
-
     const chainId = Number(this.configService.get<string>('CHAIN_ID'));
     const startOfDay = dayjs.utc().startOf('day').toDate();
     const startOfTomorrow = dayjs.utc().add(1, 'day').startOf('day').toDate();
 
-    const operation = await this.prisma.$transaction(async tx => {
+    const decision = await this.prisma.$transaction(async tx => {
       // One decision at a time per user/day, including different event types.
       await tx.userDailyAwardLock.upsert({
         where: { uid_awardDate: { uid, awardDate: startOfDay } },
@@ -151,6 +149,7 @@ export class AwardService {
       const dailyCap = tokenPolicy?.dailyCap ?? DAILY_TOKEN_CAP;
       const exempt =
         rule.globalCapExempt || EXEMPT_AWARD_EVENTS.includes(rule.eventId);
+      let awardedAmount = rule.rewardAmount;
       if (capEnabled && !exempt) {
         const [confirmedTotal, pending] = await Promise.all([
           this.txLogRepo.sumTodayAwardsByUid(uid, tx),
@@ -167,11 +166,13 @@ export class AwardService {
           }),
         ]);
         const pendingTotal = Number(pending._sum.amount ?? 0);
-        if (confirmedTotal + pendingTotal + rule.rewardAmount > dailyCap) {
+        const remainingAllowance = dailyCap - confirmedTotal - pendingTotal;
+        if (remainingAllowance <= 0) {
           throw new ForbiddenException(
             'User has earned the maximum amount of tokens for today'
           );
         }
+        awardedAmount = Math.min(rule.rewardAmount, remainingAllowance);
       }
 
       const existingAward =
@@ -192,7 +193,7 @@ export class AwardService {
       }
 
       await this.userAwardRepo.upsertInTransaction(uid, rule.id, tx);
-      return tx.chainOperation.create({
+      const operation = await tx.chainOperation.create({
         data: {
           uid,
           address,
@@ -200,14 +201,17 @@ export class AwardService {
           awardRuleId: rule.id,
           eventId,
           label: rule.eventId,
-          amount: rule.rewardAmount.toString(),
+          amount: awardedAmount.toString(),
           source: opts.source ?? null,
           componentIdentity: opts.componentIdentity ?? null,
           eventTimestamp,
           chainId,
         },
       });
+      return { operation, awardedAmount };
     });
+    const { operation, awardedAmount } = decision;
+    const amountWei = parseUnits(awardedAmount.toString(), 18);
 
     let txHash: string | null = null;
     try {
@@ -249,7 +253,7 @@ export class AwardService {
             type: 'award',
             eventId,
             label: rule.eventId,
-            amount: rule.rewardAmount.toString(),
+            amount: awardedAmount.toString(),
             txHash: txHash!,
             chainId,
             eventTimestamp,
@@ -280,13 +284,13 @@ export class AwardService {
       } catch {
         // balance unavailable; the award already succeeded
       }
-      const awardedAmount = rule.rewardAmount.toString();
+      const awardedAmountString = awardedAmount.toString();
       return {
         txHash,
         // `awarde_amount` is a legacy misspelling kept for backward compatibility; integrations
         // should read `awarded_amount`. Remove the old field in a future breaking release.
-        awarde_amount: awardedAmount,
-        awarded_amount: awardedAmount,
+        awarde_amount: awardedAmountString,
+        awarded_amount: awardedAmountString,
         new_balance: newBalance,
       };
     } catch (error) {
