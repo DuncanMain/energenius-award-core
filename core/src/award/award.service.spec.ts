@@ -84,6 +84,7 @@ describe('AwardService', () => {
     tx.chainOperation.aggregate.mockResolvedValue({ _sum: { amount: null } });
     tx.chainOperation.create.mockResolvedValue({ id: 'operation-id' });
     tx.tokenPolicy.findUnique.mockResolvedValue(null);
+    txLogRepository.sumTodayAwardsByUid.mockResolvedValue(0);
     chainService.submitAward.mockResolvedValue({ hash: '0xaward' });
     chainService.waitForTransaction.mockResolvedValue({
       blockNumber: 123,
@@ -191,6 +192,66 @@ describe('AwardService', () => {
 
     // the confirmed operation must NOT be downgraded to RECONCILIATION_REQUIRED / FAILED
     expect(prisma.chainOperation.update).not.toHaveBeenCalled();
+  });
+
+  it('partially awards the remaining global daily allowance', async () => {
+    awardTableService.getAwardRuleByEventId.mockResolvedValue({
+      id: 'flex-rule-id',
+      eventId: 'flexibility_campaign_completed',
+      source: 'Flexibility',
+      rewardAmount: 5,
+      maxPerDay: 0,
+      maxPerUser: 0,
+      globalCapExempt: false,
+    });
+    authService.userExists.mockResolvedValue(true);
+    userAwardRepository.findByUidAndEventIdWithLock.mockResolvedValue(null);
+    txLogRepository.sumTodayAwardsByUid.mockResolvedValue(3);
+    chainService.balanceOf.mockResolvedValue(parseUnits('5', 18));
+
+    await expect(
+      service.awardEvent('nexus-user-uid', 'flexibility_campaign_completed', {
+        componentToken: 'component-token',
+      })
+    ).resolves.toEqual({
+      txHash: '0xaward',
+      awarde_amount: '2',
+      awarded_amount: '2',
+      new_balance: '5.0',
+    });
+
+    expect(chainService.submitAward).toHaveBeenCalledWith(
+      expect.any(String),
+      parseUnits('2', 18)
+    );
+    expect(tx.chainOperation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ amount: '2' }),
+    });
+    expect(txLogRepository.createInTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: '2' }),
+      tx
+    );
+  });
+
+  it('rejects an award when no global daily allowance remains', async () => {
+    awardTableService.getAwardRuleByEventId.mockResolvedValue({
+      id: 'flex-rule-id',
+      eventId: 'flexibility_campaign_completed',
+      source: 'Flexibility',
+      rewardAmount: 5,
+      maxPerDay: 0,
+      maxPerUser: 0,
+      globalCapExempt: false,
+    });
+    authService.userExists.mockResolvedValue(true);
+    txLogRepository.sumTodayAwardsByUid.mockResolvedValue(5);
+
+    await expect(
+      service.awardEvent('nexus-user-uid', 'flexibility_campaign_completed', {
+        componentToken: 'component-token',
+      })
+    ).rejects.toThrow(ForbiddenException);
+    expect(chainService.submitAward).not.toHaveBeenCalled();
   });
 
   it('serializes concurrent spends and confirms both with distinct hashes', async () => {
