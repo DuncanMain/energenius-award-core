@@ -8,6 +8,11 @@ import {
 import { formatUnits, parseUnits } from 'ethers';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChainService } from '../chain/chain.service';
+import {
+  BLOCKCHAIN_PROVIDER_UNAVAILABLE,
+  toBlockchainProviderUnavailable,
+  TransientRpcError,
+} from '../chain/rpc.errors';
 import { TxLogRepository } from './repositories/tx-log.repository';
 import { UserWalletRepository } from '@/wallet/user-wallet.repository';
 import { deriveAddress } from '@/utils/wallet';
@@ -230,25 +235,25 @@ export class AwardService {
     try {
       // Serialises treasury nonce allocation across all core instances. This
       // transaction covers submission only, never block confirmation.
-      txHash = await this.prisma.$transaction(
-        async tx => {
-          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
-          const submitted = await this.chainService.submitAward(
-            address,
-            amountWei
-          );
-          await tx.chainOperation.update({
-            where: { id: operation.id },
-            data: {
-              status: 'SUBMITTED',
-              txHash: submitted.hash,
-              submittedAt: new Date(),
-            },
-          });
-          return submitted.hash;
-        },
-        SIGNER_TRANSACTION_OPTIONS
-      );
+      txHash = await this.prisma.$transaction(async tx => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
+        const submitted = await this.chainService.submitAward(
+          address,
+          amountWei
+        );
+        // Capture the hash before the status update. If persistence fails after a
+        // successful broadcast, the outcome is ambiguous and must be reconciled.
+        txHash = submitted.hash;
+        await tx.chainOperation.update({
+          where: { id: operation.id },
+          data: {
+            status: 'SUBMITTED',
+            txHash: submitted.hash,
+            submittedAt: new Date(),
+          },
+        });
+        return submitted.hash;
+      }, SIGNER_TRANSACTION_OPTIONS);
 
       const receipt = await this.chainService.waitForTransaction(txHash);
       const contractLog = receipt.logs.find(
@@ -307,14 +312,18 @@ export class AwardService {
         new_balance: newBalance,
       };
     } catch (error) {
+      const exposedError = toBlockchainProviderUnavailable(error) ?? error;
       await this.prisma.chainOperation.update({
         where: { id: operation.id },
         data: {
           status: txHash ? 'RECONCILIATION_REQUIRED' : 'FAILED',
-          failureReason: error instanceof Error ? error.message : String(error),
+          failureReason:
+            exposedError instanceof Error
+              ? exposedError.message
+              : String(exposedError),
         },
       });
-      throw error;
+      throw exposedError;
     }
   }
   async spend(uid: string, amountEnc: bigint, label?: string) {
@@ -358,25 +367,23 @@ export class AwardService {
 
     let txHash: string | null = null;
     try {
-      txHash = await this.prisma.$transaction(
-        async tx => {
-          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
-          const submitted = await this.chainService.submitSpend(
-            address,
-            amountWei
-          );
-          await tx.chainOperation.update({
-            where: { id: operation.id },
-            data: {
-              status: 'SUBMITTED',
-              txHash: submitted.hash,
-              submittedAt: new Date(),
-            },
-          });
-          return submitted.hash;
-        },
-        SIGNER_TRANSACTION_OPTIONS
-      );
+      txHash = await this.prisma.$transaction(async tx => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('energenius-treasury-signer'))`;
+        const submitted = await this.chainService.submitSpend(
+          address,
+          amountWei
+        );
+        txHash = submitted.hash;
+        await tx.chainOperation.update({
+          where: { id: operation.id },
+          data: {
+            status: 'SUBMITTED',
+            txHash: submitted.hash,
+            submittedAt: new Date(),
+          },
+        });
+        return submitted.hash;
+      }, SIGNER_TRANSACTION_OPTIONS);
       const receipt = await this.chainService.waitForTransaction(txHash);
       const contractLog = receipt.logs.find(
         log =>
@@ -421,14 +428,18 @@ export class AwardService {
         new_balance_wei: newBalanceWei,
       };
     } catch (error) {
+      const exposedError = toBlockchainProviderUnavailable(error) ?? error;
       await this.prisma.chainOperation.update({
         where: { id: operation.id },
         data: {
           status: txHash ? 'RECONCILIATION_REQUIRED' : 'FAILED',
-          failureReason: error instanceof Error ? error.message : String(error),
+          failureReason:
+            exposedError instanceof Error
+              ? exposedError.message
+              : String(exposedError),
         },
       });
-      throw error;
+      throw exposedError;
     }
   }
 
@@ -527,6 +538,12 @@ export class AwardService {
   }
 
   private classifyRejection(message: string, error: any): string {
+    if (
+      error instanceof TransientRpcError ||
+      error?.code === BLOCKCHAIN_PROVIDER_UNAVAILABLE
+    ) {
+      return BLOCKCHAIN_PROVIDER_UNAVAILABLE;
+    }
     if (/maxPerUser reached|maxPerDay reached/i.test(message)) {
       return 'DUPLICATE';
     }

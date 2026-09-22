@@ -12,6 +12,7 @@ import {
 import { formatUnits, parseUnits } from 'ethers';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ChainService } from '@/chain/chain.service';
+import { toBlockchainProviderUnavailable } from '@/chain/rpc.errors';
 import {
   AdjustmentDto,
   CreateAdminDto,
@@ -779,6 +780,9 @@ export class AdminService {
         const submitted = credit
           ? await this.chain.submitAward(wallet.address, amountWei)
           : await this.chain.submitSpend(wallet.address, amountWei);
+        // Capture the hash before the status update so a DB failure after broadcast
+        // remains visible as an ambiguous operation requiring reconciliation.
+        txHash = submitted.hash;
         await tx.chainOperation.update({
           where: { id: operation.id },
           data: {
@@ -852,14 +856,18 @@ export class AdminService {
         balanceWei,
       });
     } catch (error) {
+      const exposedError = toBlockchainProviderUnavailable(error) ?? error;
       await this.prisma.chainOperation.update({
         where: { id: operation.id },
         data: {
           status: txHash ? 'RECONCILIATION_REQUIRED' : 'FAILED',
-          failureReason: error instanceof Error ? error.message : String(error),
+          failureReason:
+            exposedError instanceof Error
+              ? exposedError.message
+              : String(exposedError),
         },
       });
-      throw error;
+      throw exposedError;
     }
   }
 

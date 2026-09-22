@@ -14,6 +14,7 @@ import { AwardRepository } from './award.repository';
 import { AwardService } from './award.service';
 import { AwardTableService } from './award-table.service';
 import { TxLogRepository } from './repositories/tx-log.repository';
+import { TransientRpcError } from '@/chain/rpc.errors';
 
 describe('AwardService', () => {
   let service: AwardService;
@@ -195,6 +196,68 @@ describe('AwardService', () => {
 
     // the confirmed operation must NOT be downgraded to RECONCILIATION_REQUIRED / FAILED
     expect(prisma.chainOperation.update).not.toHaveBeenCalled();
+  });
+
+  it('marks a broadcast provider failure as FAILED and returns HTTP 503', async () => {
+    awardTableService.getAwardRuleByEventId.mockResolvedValue({
+      id: 'rule-id',
+      eventId: 'enplay_purchase_res_item',
+      source: 'ENPlay',
+      rewardAmount: 1,
+      maxPerDay: 0,
+      maxPerUser: 0,
+    });
+    authService.userExists.mockResolvedValue(true);
+    userAwardRepository.findByUidAndEventIdWithLock.mockResolvedValue(null);
+    chainService.submitAward.mockRejectedValue({
+      code: 19,
+      message: 'Temporary internal error, trace-id: award-503',
+    });
+
+    await expect(
+      service.awardEvent('nexus-user-uid', 'enplay_purchase_res_item', {
+        componentToken: 'component-token',
+      })
+    ).rejects.toMatchObject({
+      status: 503,
+      code: 'BLOCKCHAIN_PROVIDER_UNAVAILABLE',
+      traceId: 'award-503',
+    });
+    expect(prisma.chainOperation.update).toHaveBeenCalledWith({
+      where: { id: 'operation-id' },
+      data: expect.objectContaining({ status: 'FAILED' }),
+    });
+  });
+
+  it('marks a submitted award as reconciliation-required when receipt reads are transient', async () => {
+    awardTableService.getAwardRuleByEventId.mockResolvedValue({
+      id: 'rule-id',
+      eventId: 'enplay_purchase_res_item',
+      source: 'ENPlay',
+      rewardAmount: 1,
+      maxPerDay: 0,
+      maxPerUser: 0,
+    });
+    authService.userExists.mockResolvedValue(true);
+    userAwardRepository.findByUidAndEventIdWithLock.mockResolvedValue(null);
+    chainService.waitForTransaction.mockRejectedValue(
+      new TransientRpcError({
+        message: 'Temporary blockchain provider error (trace-id: receipt-503)',
+        traceId: 'receipt-503',
+        providerCode: 19,
+        httpStatus: 500,
+      })
+    );
+
+    await expect(
+      service.awardEvent('nexus-user-uid', 'enplay_purchase_res_item', {
+        componentToken: 'component-token',
+      })
+    ).rejects.toMatchObject({ status: 503 });
+    expect(prisma.chainOperation.update).toHaveBeenLastCalledWith({
+      where: { id: 'operation-id' },
+      data: expect.objectContaining({ status: 'RECONCILIATION_REQUIRED' }),
+    });
   });
 
   it('partially awards the remaining global daily allowance', async () => {
@@ -432,6 +495,29 @@ describe('AwardService', () => {
       data: expect.objectContaining({
         reasonCategory: category,
         reasonMessage: message,
+      }),
+    });
+  });
+
+  it('classifies temporary provider failures separately in rejection telemetry', async () => {
+    const error = new TransientRpcError({
+      message: 'Temporary blockchain provider error (trace-id: amoy-123)',
+      traceId: 'amoy-123',
+      providerCode: 19,
+      httpStatus: 500,
+    });
+
+    await service.recordRejectedAward({
+      componentIdentity: 'community',
+      targetUserId: 'user-id',
+      eventId: 'community_comment',
+      error,
+    });
+
+    expect(prisma.rejectedAwardRequest.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        reasonCategory: 'BLOCKCHAIN_PROVIDER_UNAVAILABLE',
+        reasonMessage: expect.stringContaining('trace-id: amoy-123'),
       }),
     });
   });

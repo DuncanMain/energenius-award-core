@@ -299,6 +299,8 @@ export function previewResponse(path: string, method: string) {
       token: { name: 'ENERGENIUS Coin', symbol: 'ENC' },
       latest_block: 17828431,
       last_reconciled_block: '17828426',
+      rpc_status: 'HEALTHY',
+      rpc_errors: [],
     };
   return { items: [], total: 0 };
 }

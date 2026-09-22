@@ -8,6 +8,7 @@ import {
   Wallet,
 } from 'ethers';
 import encoinAbi from './abi/encoin.abi.json';
+import { toBlockchainProviderUnavailable, withRpcRetry } from './rpc.errors';
 
 @Injectable()
 export class ChainService implements OnModuleInit {
@@ -42,7 +43,9 @@ export class ChainService implements OnModuleInit {
   }
 
   async balanceOf(address: string): Promise<bigint> {
-    const balance = await this.encoin.balanceOf(address);
+    const balance = await this.read('balanceOf', () =>
+      this.encoin.balanceOf(address)
+    );
     return BigInt(balance.toString());
   }
 
@@ -50,12 +53,14 @@ export class ChainService implements OnModuleInit {
     to: string,
     amountWei: bigint
   ): Promise<ContractTransactionResponse> {
-    return this.encoin.award(to, amountWei);
+    return this.broadcast('submitAward', () =>
+      this.encoin.award(to, amountWei)
+    );
   }
 
   async award(to: string, amountWei: bigint): Promise<string> {
     const tx = await this.submitAward(to, amountWei);
-    await tx.wait();
+    await this.waitForTransaction(tx.hash);
     return tx.hash;
   }
 
@@ -63,17 +68,21 @@ export class ChainService implements OnModuleInit {
     from: string,
     amountWei: bigint
   ): Promise<ContractTransactionResponse> {
-    return this.encoin.spend(from, amountWei);
+    return this.broadcast('submitSpend', () =>
+      this.encoin.spend(from, amountWei)
+    );
   }
 
   async spend(from: string, amountWei: bigint): Promise<string> {
     const tx = await this.submitSpend(from, amountWei);
-    await tx.wait();
+    await this.waitForTransaction(tx.hash);
     return tx.hash;
   }
 
   async waitForTransaction(txHash: string): Promise<TransactionReceipt> {
-    const receipt = await this.provider.waitForTransaction(txHash);
+    const receipt = await this.read('waitForTransaction', () =>
+      this.provider.waitForTransaction(txHash)
+    );
     if (!receipt) throw new Error(`No receipt returned for ${txHash}`);
     if (receipt.status !== 1)
       throw new Error(`Transaction reverted: ${txHash}`);
@@ -81,27 +90,29 @@ export class ChainService implements OnModuleInit {
   }
 
   async getTransactionReceipt(txHash: string) {
-    return this.provider.getTransactionReceipt(txHash);
+    return this.read('getTransactionReceipt', () =>
+      this.provider.getTransactionReceipt(txHash)
+    );
   }
 
   async owner(): Promise<string> {
-    return this.encoin.owner();
+    return this.read('owner', () => this.encoin.owner());
   }
 
   async treasury(): Promise<string> {
-    return this.encoin.treasury();
+    return this.read('treasury', () => this.encoin.treasury());
   }
 
   async paused(): Promise<boolean> {
-    return this.encoin.paused();
+    return this.read('paused', () => this.encoin.paused());
   }
 
   async metadata() {
     const [name, symbol, decimals, totalSupply] = await Promise.all([
-      this.encoin.name(),
-      this.encoin.symbol(),
-      this.encoin.decimals(),
-      this.encoin.totalSupply(),
+      this.read('metadata.name', () => this.encoin.name()),
+      this.read('metadata.symbol', () => this.encoin.symbol()),
+      this.read('metadata.decimals', () => this.encoin.decimals()),
+      this.read('metadata.totalSupply', () => this.encoin.totalSupply()),
     ]);
     return {
       name: String(name),
@@ -112,31 +123,56 @@ export class ChainService implements OnModuleInit {
   }
 
   async pause(): Promise<string> {
-    const tx: ContractTransactionResponse = await this.encoin.pause();
-    await tx.wait();
-    return tx.hash;
+    try {
+      const tx: ContractTransactionResponse = await this.broadcast(
+        'pause',
+        () => this.encoin.pause()
+      );
+      await this.waitForTransaction(tx.hash);
+      return tx.hash;
+    } catch (error) {
+      throw toBlockchainProviderUnavailable(error, 'pause') ?? error;
+    }
   }
 
   async unpause(): Promise<string> {
-    const tx: ContractTransactionResponse = await this.encoin.unpause();
-    await tx.wait();
-    return tx.hash;
+    try {
+      const tx: ContractTransactionResponse = await this.broadcast(
+        'unpause',
+        () => this.encoin.unpause()
+      );
+      await this.waitForTransaction(tx.hash);
+      return tx.hash;
+    } catch (error) {
+      throw toBlockchainProviderUnavailable(error, 'unpause') ?? error;
+    }
   }
 
   async transferEvents(fromBlock: number, toBlock: number) {
-    return this.encoin.queryFilter(
-      this.encoin.filters.Transfer(),
-      fromBlock,
-      toBlock
+    return this.read('transferEvents', () =>
+      this.encoin.queryFilter(
+        this.encoin.filters.Transfer(),
+        fromBlock,
+        toBlock
+      )
     );
   }
 
   async getBlockNumber(): Promise<number> {
-    return this.provider.getBlockNumber();
+    return this.read('getBlockNumber', () => this.provider.getBlockNumber());
+  }
+
+  async getBlockTimestamp(blockNumber: number): Promise<number | null> {
+    const block = await this.read('getBlockTimestamp', () =>
+      this.provider.getBlock(blockNumber)
+    );
+    return block?.timestamp ?? null;
   }
 
   async getCode(): Promise<string> {
-    return this.provider.getCode(this.contractAddress);
+    return this.read('getCode', () =>
+      this.provider.getCode(this.contractAddress)
+    );
   }
 
   getChainId(): number {
@@ -149,5 +185,20 @@ export class ChainService implements OnModuleInit {
 
   getSignerAddress(): string {
     return this.signer.address;
+  }
+
+  private read<T>(operationName: string, operation: () => Promise<T>) {
+    return withRpcRetry(operation, operationName);
+  }
+
+  private async broadcast<T>(
+    operationName: string,
+    operation: () => Promise<T>
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      throw toBlockchainProviderUnavailable(error, operationName) ?? error;
+    }
   }
 }

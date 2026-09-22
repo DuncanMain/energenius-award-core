@@ -24,6 +24,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { ChainService } from '@/chain/chain.service';
+import { getRpcDiagnostic } from '@/chain/rpc.errors';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ChainReconciliationService } from '@/reconciliation/chain-reconciliation.service';
 import { AdminGuard } from './admin.guard';
@@ -281,32 +282,87 @@ export class AdminController {
   @ApiOkResponse({ description: 'Live blockchain and reconciliation health.' })
   @RequireAdminPermissions(AdminPermissionEnum.ADMIN_SYSTEM_HEALTH_READ)
   async health() {
-    const [owner, treasury, paused, metadata, code, head, cursor] =
-      await Promise.all([
-        this.chain.owner(),
-        this.chain.treasury(),
-        this.chain.paused(),
-        this.chain.metadata(),
-        this.chain.getCode(),
-        this.chain.getBlockNumber(),
+    const safeRead = <T>(read: () => Promise<T>) =>
+      Promise.resolve().then(read);
+    const rpcErrors: Array<{
+      operation: string;
+      message: string;
+      trace_id: string | null;
+    }> = [];
+    const [
+      ownerResult,
+      treasuryResult,
+      pausedResult,
+      metadataResult,
+      codeResult,
+      headResult,
+      cursorResult,
+    ] = await Promise.allSettled([
+      safeRead(() => this.chain.owner()),
+      safeRead(() => this.chain.treasury()),
+      safeRead(() => this.chain.paused()),
+      safeRead(() => this.chain.metadata()),
+      safeRead(() => this.chain.getCode()),
+      safeRead(() => this.chain.getBlockNumber()),
+      safeRead(() =>
         this.prisma.chainSyncCursor.findUnique({
           where: { chainId: this.chain.getChainId() },
-        }),
+        })
+      ),
+    ]);
+
+    const valueOrNull = <T>(
+      result: PromiseSettledResult<T>,
+      operation: string
+    ): T | null => {
+      if (result.status === 'fulfilled') return result.value;
+      const diagnostic = getRpcDiagnostic(result.reason);
+      rpcErrors.push({
+        operation,
+        message: diagnostic.message,
+        trace_id: diagnostic.traceId,
+      });
+      return null;
+    };
+
+    const owner = valueOrNull(ownerResult, 'owner');
+    const treasury = valueOrNull(treasuryResult, 'treasury');
+    const paused = valueOrNull(pausedResult, 'paused');
+    const metadata = valueOrNull(metadataResult, 'metadata');
+    const code = valueOrNull(codeResult, 'getCode');
+    const head = valueOrNull(headResult, 'getBlockNumber');
+    const cursor =
+      cursorResult.status === 'fulfilled' ? cursorResult.value : null;
+
+    let treasuryBalance: bigint | null = null;
+    if (treasury) {
+      const treasuryBalanceResult = await Promise.allSettled([
+        safeRead(() => this.chain.balanceOf(treasury)),
       ]);
+      treasuryBalance = valueOrNull(
+        treasuryBalanceResult[0],
+        'treasury_balance'
+      );
+    }
     const signer = this.chain.getSignerAddress();
     return {
       chain_id: this.chain.getChainId(),
       contract_address: this.chain.getContractAddress(),
-      contract_deployed: code !== '0x',
+      contract_deployed: code === null ? null : code !== '0x',
       signer_address: signer,
       owner_address: owner,
-      signer_is_owner: signer.toLowerCase() === owner.toLowerCase(),
+      signer_is_owner:
+        owner === null ? null : signer.toLowerCase() === owner.toLowerCase(),
       treasury_address: treasury,
-      treasury_balance_wei: (await this.chain.balanceOf(treasury)).toString(),
+      treasury_balance_wei: treasuryBalance?.toString() ?? null,
       paused,
-      token: { ...metadata, totalSupply: metadata.totalSupply.toString() },
+      token: metadata
+        ? { ...metadata, totalSupply: metadata.totalSupply.toString() }
+        : null,
       latest_block: head,
       last_reconciled_block: cursor?.lastProcessedBlock.toString() ?? null,
+      rpc_status: rpcErrors.length === 0 ? 'HEALTHY' : 'DEGRADED',
+      rpc_errors: rpcErrors,
     };
   }
 

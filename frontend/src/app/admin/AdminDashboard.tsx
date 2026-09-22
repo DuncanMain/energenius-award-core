@@ -116,6 +116,7 @@ const rejectionLabel = (value: any) =>
       EVENT_DISABLED: 'Event disabled',
       SOURCE_NOT_AUTHORIZED: 'Component not authorised',
       INVALID_REQUEST: 'Invalid request',
+      BLOCKCHAIN_PROVIDER_UNAVAILABLE: 'Blockchain provider unavailable',
     }) as Record<string, string>
   )[String(value)] ?? String(value ?? 'Unknown error');
 const rejectionCategory = (row: Json) => {
@@ -1181,6 +1182,21 @@ function SystemPanel({
   reload: () => void;
   me: Json;
 }) {
+  const rpcStatus =
+    data.rpc_status === 'HEALTHY'
+      ? 'Healthy'
+      : data.rpc_status === 'DEGRADED'
+        ? 'Degraded'
+        : 'Unavailable';
+  const reconciliationStateAvailable =
+    data.rpc_status === 'HEALTHY' &&
+    data.contract_deployed === true &&
+    typeof data.latest_block === 'number';
+  const contractControlStateAvailable =
+    reconciliationStateAvailable &&
+    typeof data.paused === 'boolean' &&
+    data.signer_is_owner === true;
+
   async function action(path: string, confirmation?: string) {
     if (
       confirmation &&
@@ -1204,42 +1220,79 @@ function SystemPanel({
     <>
       <div className="cards">
         <Metric
+          label="RPC status"
+          value={rpcStatus}
+          note={
+            data.rpc_errors?.length
+              ? `${data.rpc_errors.length} read error${data.rpc_errors.length === 1 ? '' : 's'}`
+              : 'Live chain reads'
+          }
+        />
+        <Metric
           label="Contract"
-          value={data.contract_deployed ? 'Deployed' : 'Missing'}
+          value={
+            data.contract_deployed == null
+              ? 'Unavailable'
+              : data.contract_deployed
+                ? 'Deployed'
+                : 'Missing'
+          }
           note={short(data.contract_address, 24)}
         />
         <Metric
           label="Signer ownership"
-          value={data.signer_is_owner ? 'Valid' : 'Mismatch'}
+          value={
+            data.signer_is_owner == null
+              ? 'Unavailable'
+              : data.signer_is_owner
+                ? 'Valid'
+                : 'Mismatch'
+          }
           note={short(data.signer_address, 24)}
         />
         <Metric
           label="Contract state"
-          value={data.paused ? 'Paused' : 'Active'}
+          value={
+            typeof data.paused !== 'boolean'
+              ? 'Unavailable'
+              : data.paused
+                ? 'Paused'
+                : 'Active'
+          }
           note={`Chain ${data.chain_id}`}
         />
         <Metric
           label="Reconciliation cursor"
-          value={data.last_reconciled_block || 'Not started'}
-          note={`Head ${data.latest_block || '—'}`}
+          value={data.last_reconciled_block ?? 'Not started'}
+          note={`Head ${data.latest_block ?? 'Unavailable'}`}
         />
       </div>
       <Panel title="Chain controls">
         <div className="button-row">
-          {me.permissions?.includes('ADMIN_TRANSACTION_RECONCILE') && (
-            <button onClick={() => action('reconciliation/run')}>
-              Run reconciliation
-            </button>
+          {!reconciliationStateAvailable && (
+            <span>
+              Controls unavailable while live chain state is{' '}
+              {rpcStatus.toLowerCase()}.
+            </span>
           )}
-          {me.permissions?.includes('ADMIN_CONTRACT_PAUSE') && !data.paused && (
-            <button
-              className="danger"
-              onClick={() => action('contract/pause', 'PAUSE ENCOIN')}
-            >
-              Pause contract
-            </button>
-          )}
-          {me.permissions?.includes('ADMIN_CONTRACT_UNPAUSE') &&
+          {reconciliationStateAvailable &&
+            me.permissions?.includes('ADMIN_TRANSACTION_RECONCILE') && (
+              <button onClick={() => action('reconciliation/run')}>
+                Run reconciliation
+              </button>
+            )}
+          {contractControlStateAvailable &&
+            me.permissions?.includes('ADMIN_CONTRACT_PAUSE') &&
+            !data.paused && (
+              <button
+                className="danger"
+                onClick={() => action('contract/pause', 'PAUSE ENCOIN')}
+              >
+                Pause contract
+              </button>
+            )}
+          {contractControlStateAvailable &&
+            me.permissions?.includes('ADMIN_CONTRACT_UNPAUSE') &&
             data.paused && (
               <button
                 className="danger"
@@ -1251,16 +1304,32 @@ function SystemPanel({
         </div>
         <dl className="details">
           <dt>Owner</dt>
-          <dd>{data.owner_address}</dd>
+          <dd>{data.owner_address ?? 'Unavailable'}</dd>
           <dt>Treasury</dt>
-          <dd>{data.treasury_address}</dd>
+          <dd>{data.treasury_address ?? 'Unavailable'}</dd>
           <dt>Treasury balance</dt>
-          <dd>{data.treasury_balance_wei} wei</dd>
+          <dd>
+            {data.treasury_balance_wei == null
+              ? 'Unavailable'
+              : `${data.treasury_balance_wei} wei`}
+          </dd>
           <dt>Token</dt>
           <dd>
-            {data.token?.name} ({data.token?.symbol})
+            {data.token
+              ? `${data.token.name} (${data.token.symbol})`
+              : 'Unavailable'}
           </dd>
         </dl>
+        {data.rpc_errors?.length ? (
+          <div className="details">
+            <strong>RPC diagnostics</strong>
+            {data.rpc_errors.map((error: Json) => (
+              <div key={`${error.operation}-${error.trace_id ?? 'none'}`}>
+                {error.operation}: {error.message}
+              </div>
+            ))}
+          </div>
+        ) : null}
       </Panel>
     </>
   );
