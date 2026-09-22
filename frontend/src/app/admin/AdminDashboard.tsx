@@ -106,6 +106,28 @@ async function api(path: string, init?: RequestInit) {
 // when the hashes/IDs make it wide. Second arg kept for call-site compatibility, but ignored.
 const short = (v: any, _n = 18) => (v == null ? '—' : String(v));
 const date = (v: any) => (v ? new Date(v).toLocaleString() : '—');
+const rejectionLabel = (value: any) =>
+  (
+    ({
+      DUPLICATE: 'Duplicate — user already awarded',
+      DAILY_CAP_REACHED: 'Daily token cap reached',
+      USER_NOT_FOUND: 'Nexus user not found',
+      EVENT_NOT_FOUND: 'Unknown event',
+      EVENT_DISABLED: 'Event disabled',
+      SOURCE_NOT_AUTHORIZED: 'Component not authorised',
+      INVALID_REQUEST: 'Invalid request',
+    }) as Record<string, string>
+  )[String(value)] ?? String(value ?? 'Unknown error');
+const rejectionCategory = (row: Json) => {
+  const message = String(row.reasonMessage ?? '');
+  if (/maxPerUser reached|maxPerDay reached/i.test(message)) return 'DUPLICATE';
+  if (/maximum amount of tokens for today/i.test(message)) {
+    return 'DAILY_CAP_REACHED';
+  }
+  if (/Unknown uid:/i.test(message)) return 'USER_NOT_FOUND';
+  if (/Unknown eventId:/i.test(message)) return 'EVENT_NOT_FOUND';
+  return row.reasonCategory;
+};
 
 function FieldName({ label, help }: { label: string; help: string }) {
   return (
@@ -300,12 +322,17 @@ function Content({
         </div>
         <Panel title="Operational attention">
           <Table
-            rows={data.rejected || []}
+            rows={(data.rejected || []).map((row: Json) => ({
+              ...row,
+              reasonCategory: rejectionCategory(row),
+            }))}
             columns={[
               ['createdAt', 'Time', date],
+              ['componentIdentity', 'Component', short],
               ['eventId', 'Event'],
               ['targetUserId', 'Nexus user ID', short],
-              ['reasonCategory', 'Reason'],
+              ['reasonCategory', 'Classification', rejectionLabel],
+              ['reasonMessage', 'Details'],
             ]}
           />
         </Panel>

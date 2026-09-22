@@ -33,12 +33,14 @@ describe('AwardService', () => {
       update: jest.fn(),
     },
     tokenPolicy: { findUnique: jest.fn() },
+    awardRule: { findMany: jest.fn() },
   };
   const prisma = {
     $transaction: jest.fn(),
     chainOperation: {
       update: jest.fn(),
     },
+    rejectedAwardRequest: { create: jest.fn() },
   };
   const chainService = {
     award: jest.fn(),
@@ -84,6 +86,7 @@ describe('AwardService', () => {
     tx.chainOperation.aggregate.mockResolvedValue({ _sum: { amount: null } });
     tx.chainOperation.create.mockResolvedValue({ id: 'operation-id' });
     tx.tokenPolicy.findUnique.mockResolvedValue(null);
+    tx.awardRule.findMany.mockResolvedValue([]);
     txLogRepository.sumTodayAwardsByUid.mockResolvedValue(0);
     chainService.submitAward.mockResolvedValue({ hash: '0xaward' });
     chainService.waitForTransaction.mockResolvedValue({
@@ -231,6 +234,46 @@ describe('AwardService', () => {
       expect.objectContaining({ amount: '2' }),
       tx
     );
+    expect(txLogRepository.sumTodayAwardsByUid).toHaveBeenCalledWith(
+      'nexus-user-uid',
+      tx,
+      ['scan_property']
+    );
+    expect(tx.chainOperation.aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          eventId: { notIn: ['scan_property'] },
+        }),
+      })
+    );
+  });
+
+  it('excludes configured exempt events from the daily cap calculation', async () => {
+    awardTableService.getAwardRuleByEventId.mockResolvedValue({
+      id: 'comment-rule',
+      eventId: 'community_comment',
+      source: 'COMMUNITY',
+      rewardAmount: 1,
+      maxPerDay: 0,
+      maxPerUser: 0,
+      globalCapExempt: false,
+    });
+    authService.userExists.mockResolvedValue(true);
+    userAwardRepository.findByUidAndEventIdWithLock.mockResolvedValue(null);
+    tx.awardRule.findMany.mockResolvedValue([
+      { eventId: 'enmarkt_flexibility' },
+    ]);
+    chainService.balanceOf.mockResolvedValue(parseUnits('1', 18));
+
+    await service.awardEvent('nexus-user-uid', 'community_comment', {
+      componentToken: 'component-token',
+    });
+
+    expect(txLogRepository.sumTodayAwardsByUid).toHaveBeenCalledWith(
+      'nexus-user-uid',
+      tx,
+      ['scan_property', 'enmarkt_flexibility']
+    );
   });
 
   it('rejects an award when no global daily allowance remains', async () => {
@@ -367,6 +410,30 @@ describe('AwardService', () => {
     ).rejects.toThrow(ForbiddenException);
 
     expect(chainService.award).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['maxPerUser reached for this award', 'DUPLICATE'],
+    ['maxPerDay reached for this award today', 'DUPLICATE'],
+    [
+      'User has earned the maximum amount of tokens for today',
+      'DAILY_CAP_REACHED',
+    ],
+    ['Unknown uid: missing-user', 'USER_NOT_FOUND'],
+  ])('records %s as %s', async (message, category) => {
+    await service.recordRejectedAward({
+      componentIdentity: 'community',
+      targetUserId: 'user-id',
+      eventId: 'community_comment',
+      error: new ForbiddenException(message),
+    });
+
+    expect(prisma.rejectedAwardRequest.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        reasonCategory: category,
+        reasonMessage: message,
+      }),
+    });
   });
 
   it('returns available awards for the Nexus user id from introspection', async () => {

@@ -151,12 +151,25 @@ export class AwardService {
         rule.globalCapExempt || EXEMPT_AWARD_EVENTS.includes(rule.eventId);
       let awardedAmount = rule.rewardAmount;
       if (capEnabled && !exempt) {
+        // Exempt awards do not consume the global allowance, regardless of whether
+        // they happened before or after the award currently being evaluated.
+        const configuredExemptions = await tx.awardRule.findMany({
+          where: { globalCapExempt: true },
+          select: { eventId: true },
+        });
+        const exemptEventIds = Array.from(
+          new Set([
+            ...EXEMPT_AWARD_EVENTS,
+            ...configuredExemptions.map(item => item.eventId),
+          ])
+        );
         const [confirmedTotal, pending] = await Promise.all([
-          this.txLogRepo.sumTodayAwardsByUid(uid, tx),
+          this.txLogRepo.sumTodayAwardsByUid(uid, tx, exemptEventIds),
           tx.chainOperation.aggregate({
             where: {
               uid,
               type: 'AWARD',
+              eventId: { notIn: exemptEventIds },
               status: {
                 in: ['RESERVED', 'SUBMITTED', 'RECONCILIATION_REQUIRED'],
               },
@@ -491,15 +504,16 @@ export class AwardService {
   }) {
     try {
       const error = input.error as any;
+      const reasonMessage = String(
+        error?.message ?? 'Award request rejected'
+      ).slice(0, 1000);
       await this.prisma.rejectedAwardRequest.create({
         data: {
           componentIdentity: input.componentIdentity ?? null,
           targetUserId: input.targetUserId,
           eventId: input.eventId,
-          reasonCategory: error?.constructor?.name ?? 'Error',
-          reasonMessage: String(
-            error?.message ?? 'Award request rejected'
-          ).slice(0, 1000),
+          reasonCategory: this.classifyRejection(reasonMessage, error),
+          reasonMessage,
           eventTimestamp:
             input.timestamp &&
             !Number.isNaN(new Date(input.timestamp).getTime())
@@ -510,5 +524,22 @@ export class AwardService {
     } catch {
       // Rejection telemetry must never mask the original partner-facing error.
     }
+  }
+
+  private classifyRejection(message: string, error: any): string {
+    if (/maxPerUser reached|maxPerDay reached/i.test(message)) {
+      return 'DUPLICATE';
+    }
+    if (/maximum amount of tokens for today/i.test(message)) {
+      return 'DAILY_CAP_REACHED';
+    }
+    if (/Unknown uid:/i.test(message)) return 'USER_NOT_FOUND';
+    if (/Unknown eventId:/i.test(message)) return 'EVENT_NOT_FOUND';
+    if (/Award event is disabled:/i.test(message)) return 'EVENT_DISABLED';
+    if (/not mapped to this award source/i.test(message)) {
+      return 'SOURCE_NOT_AUTHORIZED';
+    }
+    if (error instanceof BadRequestException) return 'INVALID_REQUEST';
+    return error?.constructor?.name ?? 'ERROR';
   }
 }

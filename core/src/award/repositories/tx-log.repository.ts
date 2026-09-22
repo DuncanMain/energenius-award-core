@@ -137,7 +137,8 @@ export class TxLogRepository {
 
   async sumTodayAwardsByUid(
     uid: string,
-    tx: Prisma.TransactionClient
+    tx: Prisma.TransactionClient,
+    excludedEventIds: string[] = []
   ): Promise<number> {
     const startOfDay = dayjs.utc().startOf('day').toDate();
 
@@ -145,6 +146,9 @@ export class TxLogRepository {
       where: {
         uid: uid,
         type: 'award',
+        ...(excludedEventIds.length
+          ? { eventId: { notIn: excludedEventIds } }
+          : {}),
         createdAt: { gte: startOfDay },
       },
       _sum: { amount: true },
