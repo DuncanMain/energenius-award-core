@@ -70,13 +70,13 @@ function firstCode(error: unknown): string | number | null {
 
 function firstHttpStatus(error: unknown): number | null {
   let firstStatus: number | null = null;
-  for (const key of ['status', 'statusCode', 'httpStatus']) {
+  for (const key of ['status', 'statusCode', 'httpStatus', 'responseStatus']) {
     for (const value of nestedValues(error, key)) {
       const status =
         typeof value === 'number'
           ? value
-          : typeof value === 'string' && /^\d{3}$/.test(value)
-            ? Number(value)
+          : typeof value === 'string' && /^\d{3}(?:\s|$)/.test(value)
+            ? Number(value.slice(0, 3))
             : null;
       if (status !== null) {
         firstStatus ??= status;
@@ -88,16 +88,14 @@ function firstHttpStatus(error: unknown): number | null {
 }
 
 function firstTraceId(error: unknown, messages: string[]): string | null {
-  const candidates = [
-    ...messages,
-    ...nestedValues(error, 'traceId').filter(
-      (value): value is string => typeof value === 'string'
-    ),
-    ...nestedValues(error, 'trace_id').filter(
-      (value): value is string => typeof value === 'string'
-    ),
-  ];
-  for (const value of candidates) {
+  const directValues = [
+    ...nestedValues(error, 'traceId'),
+    ...nestedValues(error, 'trace_id'),
+  ].filter((value): value is string => typeof value === 'string');
+  const direct = directValues.find(value => value.trim());
+  if (direct) return direct.trim().slice(0, 128);
+
+  for (const value of messages) {
     const match = value.match(/trace[-_ ]?id\s*[:=]\s*([A-Za-z0-9._:-]+)/i);
     if (match?.[1]) return match[1].slice(0, 128);
   }

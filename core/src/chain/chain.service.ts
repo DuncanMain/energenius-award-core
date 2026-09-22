@@ -162,13 +162,6 @@ export class ChainService implements OnModuleInit {
     return this.read('getBlockNumber', () => this.provider.getBlockNumber());
   }
 
-  async getBlockTimestamp(blockNumber: number): Promise<number | null> {
-    const block = await this.read('getBlockTimestamp', () =>
-      this.provider.getBlock(blockNumber)
-    );
-    return block?.timestamp ?? null;
-  }
-
   async getCode(): Promise<string> {
     return this.read('getCode', () =>
       this.provider.getCode(this.contractAddress)

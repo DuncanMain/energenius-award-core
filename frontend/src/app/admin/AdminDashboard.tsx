@@ -121,6 +121,13 @@ const rejectionLabel = (value: any) =>
   )[String(value)] ?? String(value ?? 'Unknown error');
 const rejectionCategory = (row: Json) => {
   const message = String(row.reasonMessage ?? '');
+  if (
+    /temporary internal error|polygon-amoy\.drpc\.org|BLOCKCHAIN_PROVIDER_UNAVAILABLE/i.test(
+      message
+    )
+  ) {
+    return 'BLOCKCHAIN_PROVIDER_UNAVAILABLE';
+  }
   if (/maxPerUser reached|maxPerDay reached/i.test(message)) return 'DUPLICATE';
   if (/maximum amount of tokens for today/i.test(message)) {
     return 'DAILY_CAP_REACHED';

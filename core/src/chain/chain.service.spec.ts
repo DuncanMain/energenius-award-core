@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { ChainService } from './chain.service';
 import {
   BlockchainProviderUnavailableException,
+  getRpcDiagnostic,
+  isTransientRpcError,
   TransientRpcError,
   withRpcRetry,
 } from './rpc.errors';
@@ -68,6 +70,39 @@ describe('ChainService', () => {
     expect(error).toBeInstanceOf(TransientRpcError);
     expect((error as Error).message).toContain('trace-id: amoy-456');
     expect(operation).toHaveBeenCalledTimes(3);
+  });
+
+  it('extracts diagnostics from the production ethers dRPC error shape', () => {
+    const error = Object.assign(
+      new Error(
+        'server response 500 Internal Server Error (trace-id: 9a26f63a64f8b3d8d7ae0f0fbdcdbbfe)'
+      ),
+      {
+        code: 'SERVER_ERROR',
+        info: {
+          responseStatus: '500 Internal Server Error',
+          responseBody:
+            '{"jsonrpc":"2.0","error":{"message":"Temporary internal error. Please retry","code":19}}',
+        },
+      }
+    );
+
+    expect(isTransientRpcError(error)).toBe(true);
+    expect(getRpcDiagnostic(error)).toMatchObject({
+      traceId: '9a26f63a64f8b3d8d7ae0f0fbdcdbbfe',
+      httpStatus: 500,
+      providerCode: 'SERVER_ERROR',
+    });
+  });
+
+  it('preserves a direct provider traceId field', () => {
+    expect(
+      getRpcDiagnostic({
+        status: 503,
+        traceId: 'direct-trace-123',
+        message: 'temporarily unavailable',
+      }).traceId
+    ).toBe('direct-trace-123');
   });
 
   it('does not retry deterministic contract errors', async () => {
